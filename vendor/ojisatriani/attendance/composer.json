@@ -1,0 +1,21 @@
+{
+    "name": "ojisatriani/attendance",
+    "description": "Attendance Manajemen",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Oji Satriani",
+            "email": "oji.satriani@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "php": ">=7.2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "OjiSatriani\\Attendance\\": "src"
+        }
+    }
+}

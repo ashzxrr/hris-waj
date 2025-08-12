@@ -1,0 +1,50 @@
+{
+    "packages": [
+        {
+            "name": "ojisatriani/attendance",
+            "version": "dev-main",
+            "version_normalized": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ojisatriani/attendance.git",
+                "reference": "ced0b40626d31f538635a7ec293f5f063eb4f9d4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ojisatriani/attendance/zipball/ced0b40626d31f538635a7ec293f5f063eb4f9d4",
+                "reference": "ced0b40626d31f538635a7ec293f5f063eb4f9d4",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.2.0"
+            },
+            "time": "2022-09-14T03:31:38+00:00",
+            "default-branch": true,
+            "type": "library",
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "OjiSatriani\\Attendance\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Oji Satriani",
+                    "email": "oji.satriani@gmail.com"
+                }
+            ],
+            "description": "Attendance Manajemen",
+            "support": {
+                "issues": "https://github.com/ojisatriani/attendance/issues",
+                "source": "https://github.com/ojisatriani/attendance/tree/main"
+            },
+            "install-path": "../ojisatriani/attendance"
+        }
+    ],
+    "dev": true,
+    "dev-package-names": []
+}

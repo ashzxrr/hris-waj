@@ -1,0 +1,9 @@
+{
+    "name": "user/absensi-solution",
+    "require": {
+        "ojisatriani/attendance": "dev-main"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
+
