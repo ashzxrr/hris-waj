@@ -22,7 +22,7 @@ if (empty($pin) || empty($tanggal_dari) || empty($tanggal_sampai)) {
 }
 
 // Ambil NIP dari database
-$query_karyawan = $mysqli->query("SELECT pin, nip, nama FROM karyawan_test WHERE pin = '$pin' LIMIT 1");
+$query_karyawan = $mysqli->query("SELECT pin, nip, bagian nama FROM karyawan_test WHERE pin = '$pin' LIMIT 1");
 $karyawan = $query_karyawan->fetch_assoc();
 if (!$karyawan) {
     die("Karyawan tidak ditemukan");
