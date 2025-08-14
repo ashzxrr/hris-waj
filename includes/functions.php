@@ -179,4 +179,4 @@ function formatTanggalIndonesia($tanggal) {
     
     return $hari . ' ' . $bulan[$bulan_idx] . ' ' . $tahun;
 }
-?>
+?> 
