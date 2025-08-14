@@ -1,70 +1,34 @@
-<?php
-require 'config.php';
-require 'functions.php';
-
-if(!isset($_POST['selected_users']) || !isset($_POST['tanggal_dari']) || !isset($_POST['tanggal_sampai'])) {
-    die("❌ Data tidak lengkap!");
-}
-
-$selected_users = $_POST['selected_users']; // array PIN
-$tanggal_dari = $_POST['tanggal_dari'];
-$tanggal_sampai = $_POST['tanggal_sampai'];
-
-// Ambil semua user dari mesin (nama)
-$all_users = getUsers($ip, $port, $key);
-
-// Filter users yang dipilih
-$users_filtered = [];
-foreach($selected_users as $pin) {
-    $users_filtered[$pin] = $all_users[$pin] ?? '(Tidak Diketahui)';
-}
-
-// Ambil absensi dari mesin untuk tanggal range
-$data_absen = getAttendanceRange($ip, $port, $key, $tanggal_dari, $tanggal_sampai, $users_filtered);
+<?php 
+require __DIR__ . '/includes/header.php'; 
 ?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<title>Detail Absensi</title>
+
+<div class="container mt-5 pt-4">
+    <div class="row justify-content-center">
+        <!-- Card User -->
+        <div class="col-md-3 col-sm-6 mb-4">
+            <a href="halaman-users-fix.php" class="text-decoration-none">
+                <div class="card shadow-sm border-0 text-center p-4 hover-card">
+                    <div class="card-body">
+                        <i class="fa-solid fa-users fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title text-dark">Manajemen User</h5>
+                        <p class="text-muted small mb-0">Lihat & kelola data pengguna</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
 <style>
-table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-th { background: #f0f0f0; }
-tr:nth-child(even) { background: #f9f9f9; }
+    .hover-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0px 8px 20px rgba(0,0,0,0.15);
+    }
 </style>
-</head>
-<body>
 
-<h2>📊 Detail Absensi</h2>
-<p>Dari: <?= htmlspecialchars($tanggal_dari) ?> | Sampai: <?= htmlspecialchars($tanggal_sampai) ?></p>
-
-<table>
-    <thead>
-        <tr>
-            <th>No</th>
-            <th>PIN</th>
-            <th>Nama</th>
-            <th>Tanggal</th>
-            <th>Waktu</th>
-            <th>Status</th>
-            <th>Verified</th>
-        </tr>
-    </thead>
-    <tbody>
-        <?php $no=1; foreach($data_absen as $row): ?>
-            <tr>
-                <td><?= $no ?></td>
-                <td><?= htmlspecialchars($row['pin']) ?></td>
-                <td><?= htmlspecialchars($row['nama']) ?></td>
-                <td><?= date('d/m/Y', strtotime($row['datetime'])) ?></td>
-                <td><?= date('H:i:s', strtotime($row['datetime'])) ?></td>
-                <td><?= htmlspecialchars($row['status']) ?></td>
-                <td><?= htmlspecialchars($row['verified']) ?></td>
-            </tr>
-        <?php $no++; endforeach; ?>
-    </tbody>
-</table>
-
-</body>
-</html>
+<?php 
+require __DIR__ . '/includes/footer.php'; 
+?>
