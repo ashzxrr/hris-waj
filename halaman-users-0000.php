@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/includes/config.php';
 require __DIR__ . '/includes/functions.php';
+require __DIR__ . '/includes/header.php';
 
 // Ambil data user dari mesin fingerprint
 $users = getUsers($ip, $port, $key);
@@ -31,99 +32,11 @@ button { padding: 5px 10px; cursor: pointer; margin-top: 10px; }
 .search-input { padding: 8px; width: 300px; border: 1px solid #ddd; border-radius: 3px; }
 .button-container { margin: 15px 0; text-align: center; }
 .hidden { display: none; }
-
-/* Loading Animation */
-.loading {
-    position: relative;
-    pointer-events: none;
-    opacity: 0.7;
-}
-
-.loading::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 16px;
-    height: 16px;
-    margin: -8px 0 0 -8px;
-    border: 2px solid transparent;
-    border-top: 2px solid #fff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.loading-text {
-    visibility: hidden;
-}
-
-/* Loading Overlay */
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    display: none;
-}
-
-.loading-spinner {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #007bff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 10px;
-}
 </style>
 <script>
 function toggleAll(source) {
     const checkboxes = document.querySelectorAll('input[name="selected_users[]"]:not(.hidden)');
     checkboxes.forEach(checkbox => checkbox.checked = source.checked);
-}
-
-function showLoading(button, text = 'Loading...') {
-    button.classList.add('loading');
-    button.dataset.originalText = button.innerHTML;
-    button.innerHTML = '<span class="loading-text">' + text + '</span>';
-    button.disabled = true;
-}
-
-function hideLoading(button) {
-    button.classList.remove('loading');
-    button.innerHTML = button.dataset.originalText;
-    button.disabled = false;
-}
-
-function showOverlayLoading(text = 'Memproses data...') {
-    const overlay = document.getElementById('loadingOverlay');
-    const loadingText = document.getElementById('loadingText');
-    loadingText.textContent = text;
-    overlay.style.display = 'flex';
-}
-
-function hideOverlayLoading() {
-    const overlay = document.getElementById('loadingOverlay');
-    overlay.style.display = 'none';
 }
 
 function validateForm() {
@@ -145,11 +58,6 @@ function validateForm() {
         alert('⚠️ Tanggal dari tidak boleh lebih besar dari tanggal sampai!');
         return false;
     }
-    
-    // Show loading saat form valid
-    const submitBtn = event.target.querySelector('button[type="submit"]');
-    showLoading(submitBtn, 'Memuat data...');
-    showOverlayLoading('Mengambil data absensi...');
     
     return true;
 }
@@ -192,14 +100,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </head>
 <body>
 
-<!-- Loading Overlay -->
-<div id="loadingOverlay" class="loading-overlay">
-    <div class="loading-spinner">
-        <div class="spinner"></div>
-        <div id="loadingText">Memproses data...</div>
-    </div>
-</div>
-
 <h2>📋 Data User Fingerprint</h2>
 
 <div class="form-container">
@@ -207,10 +107,8 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="form-row">
             <label>📅 Dari Tanggal: <input type="date" name="tanggal_dari" required></label>
             <label>📅 Sampai Tanggal: <input type="date" name="tanggal_sampai" required></label>
-        </div>
-        
-        <div class="button-container">
-            <button type="submit" name="detailBtn" class="btn-primary">➡️ Lihat Detail Absensi</button>
+     
+            <button type="submit" name="detailBtn" class="btn-primary">➡️ Detail Absensi</button>
         </div>
         
         <div class="search-container">
@@ -234,19 +132,34 @@ document.addEventListener('DOMContentLoaded', function() {
                     <th>No</th>
                     <th>PIN</th>
                     <th>Nama</th>
+                    <th>NIP</th>
                     <th>Pilih</th>
                 </tr>
             </thead>
             <tbody>
-                <?php $no=1; foreach($users as $pin=>$name): ?>
+                <?php 
+                $no=1; 
+                foreach($users as $pin=>$name): 
+                    // Ambil NIP dari database sesuai PIN
+                    $stmt = $mysqli->prepare("SELECT nip FROM karyawan_test WHERE pin = ?");
+                    $stmt->bind_param("s", $pin);
+                    $stmt->execute();
+                    $stmt->bind_result($nip);
+                    $stmt->fetch();
+                    $stmt->close();
+                ?>
                     <tr>
                         <td><?= $no ?></td>
                         <td><?= htmlspecialchars($pin) ?></td>
                         <td><?= htmlspecialchars($name) ?></td>
+                        <td><?= htmlspecialchars($nip ?? '-') ?></td>
                         <td><input type="checkbox" name="selected_users[]" value="<?= htmlspecialchars($pin) ?>"></td>
                     </tr>
-                <?php $no++; endforeach; ?>
-            </tbody>
+                <?php 
+                    $no++; 
+                endforeach; 
+                ?>
+</tbody>
         </table>
     </form>
 </div>

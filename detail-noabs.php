@@ -20,14 +20,15 @@ $all_attendance = getAttendanceRange($ip, $port, $key, $tanggal_dari, $tanggal_s
 $filtered_attendance = array_filter($all_attendance, function($record) use ($selected_users) {
     return in_array($record['pin'], $selected_users);
 });
-// Ambil NIP dari database untuk PIN yang dipilih
+
+// Ambil NIP & Bagian dari database
 $pins = array_map('intval', $selected_users);
 $pin_list = implode(',', $pins);
 
 $nip_data = [];
 if (!empty($pins)) {
     $result = mysqli_query($mysqli, "SELECT pin, nip, bagian FROM karyawan_test WHERE pin IN ($pin_list)");
-        while ($row = mysqli_fetch_assoc($result)) {
+    while ($row = mysqli_fetch_assoc($result)) {
         $nip_data[$row['pin']] = [
             'nip'    => $row['nip'],
             'bagian' => $row['bagian']
@@ -35,7 +36,7 @@ if (!empty($pins)) {
     }
 }
 
-// Tambahkan NIP ke setiap record
+// Tambahkan NIP & Bagian ke setiap record
 foreach ($filtered_attendance as &$record) {
     if (isset($nip_data[$record['pin']])) {
         $record['nip']    = $nip_data[$record['pin']]['nip'];
@@ -46,6 +47,7 @@ foreach ($filtered_attendance as &$record) {
     }
 }
 unset($record);
+
 // Dapatkan statistik
 $stats = getAttendanceStats($filtered_attendance);
 
@@ -77,6 +79,7 @@ tr:nth-child(even) { background: #f9f9f9; }
 .status-out { color: #dc3545; font-weight: bold; }
 .no-data { text-align: center; padding: 30px; color: #6c757d; font-style: italic; }
 .filter-info { background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-bottom: 15px; }
+.status-none { color: #ff9800; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -129,101 +132,68 @@ tr:nth-child(even) { background: #f9f9f9; }
 </div>
 
 <!-- Tabel Data Absensi -->
-<?php if (empty($filtered_attendance)): ?>
-    <div class="no-data">
-        <h3>😔 Tidak Ada Data</h3>
-        <p>Tidak ditemukan data absensi untuk user dan periode yang dipilih.</p>
-    </div>
-<?php else: ?>
-    <table>
-        <thead>
-            <tr>
-                <th>No</th>
-                <th>PIN</th>
-                <th>NIP</th>
-                <th>Nama</th>
-                <th>Bagian</th>
-                <th>Tanggal</th>
-                <th>Waktu</th>
-                <th>Status</th>
-                <th>Verified</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($filtered_attendance as $i => $record): ?>
-                <tr>
-                    <td><?= $i + 1 ?></td>
-                    <td><?= htmlspecialchars($record['pin']) ?></td>
-                    <td><?= htmlspecialchars($record['nip']) ?></td>
-                    <td><?= htmlspecialchars($record['nama']) ?></td>
-                    <td><?= htmlspecialchars($record['bagian']) ?></td>
-                    <td><?= date('d/m/Y', strtotime($record['datetime'])) ?></td>
-                    <td><?= date('H:i:s', strtotime($record['datetime'])) ?></td>
-                    <td>
-                        <span class="<?= $record['status'] == 'IN' ? 'status-in' : 'status-out' ?>">
-                            <?= $record['status'] ?>
-                        </span>
-                    </td>
-                    <td><?= htmlspecialchars($record['verified']) ?></td>
-                </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-<?php endif; ?>
+<table>
+    <thead>
+        <tr>
+            <th>No</th>
+            <th>PIN</th>
+            <th>NIP</th>
+            <th>Nama</th>
+            <th>Bagian</th>
+            <th>Tanggal</th>
+            <th>Waktu</th>
+            <th>Status</th>
+            <th>Verified</th>
+        </tr>
+    </thead>
+    <tbody>
+    <?php
+    $no = 1;
+    $periode = new DatePeriod(
+        new DateTime($tanggal_dari),
+        new DateInterval('P1D'),
+        (new DateTime($tanggal_sampai))->modify('+1 day')
+    );
 
-<!-- Statistik Per User -->
-<?php if (!empty($stats['by_user'])): ?>
-    <h3 style="margin-top: 30px;">📈 Statistik Per User</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>User (PIN - Nama)</th>
-                <th>Total Record</th>
-                <th>Masuk (IN)</th>
-                <th>Keluar (OUT)</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($stats['by_user'] as $user => $stat): ?>
-                <tr>
-                    <td><?= htmlspecialchars($user) ?></td>
-                    <td><?= $stat['total'] ?></td>
-                    <td style="color: #28a745; font-weight: bold;"><?= $stat['in'] ?></td>
-                    <td style="color: #dc3545; font-weight: bold;"><?= $stat['out'] ?></td>
-                </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-<?php endif; ?>
+    foreach ($selected_users as $pin) {
+        foreach ($periode as $tgl) {
+            $tanggal_str = $tgl->format('Y-m-d');
+            $found = array_filter($filtered_attendance, function($item) use ($pin, $tanggal_str) {
+                return $item['pin'] == $pin && date('Y-m-d', strtotime($item['datetime'])) == $tanggal_str;
+            });
 
-<!-- Statistik Per Tanggal -->
-<?php if (!empty($stats['by_date']) && count($stats['by_date']) > 1): ?>
-    <h3 style="margin-top: 30px;">📅 Statistik Per Tanggal</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Tanggal</th>
-                <th>Total Record</th>
-                <th>Masuk (IN)</th>
-                <th>Keluar (OUT)</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php 
-            // Urutkan tanggal
-            krsort($stats['by_date']);
-            foreach ($stats['by_date'] as $date => $stat): 
-            ?>
-                <tr>
-                    <td><?= date('d/m/Y', strtotime($date)) ?></td>
-                    <td><?= $stat['total'] ?></td>
-                    <td style="color: #28a745; font-weight: bold;"><?= $stat['in'] ?></td>
-                    <td style="color: #dc3545; font-weight: bold;"><?= $stat['out'] ?></td>
-                </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-<?php endif; ?>
+            if (!empty($found)) {
+                foreach ($found as $record) {
+                    echo "<tr>
+                        <td>" . $no++ . "</td>
+                        <td>{$record['pin']}</td>
+                        <td>{$record['nip']}</td>
+                        <td>{$record['nama']}</td>
+                        <td>{$record['bagian']}</td>
+                        <td>" . date('d/m/Y', strtotime($record['datetime'])) . "</td>
+                        <td>" . date('H:i:s', strtotime($record['datetime'])) . "</td>
+                        <td><span class='" . ($record['status'] == 'IN' ? 'status-in' : 'status-out') . "'>{$record['status']}</span></td>
+                        <td>{$record['verified']}</td>
+                    </tr>";
+                }
+            } else {
+                echo "<tr style='background:#fff8e1;'>
+                    <td>" . $no++ . "</td>
+                    <td>{$pin}</td>
+                    <td>" . ($nip_data[$pin]['nip'] ?? '-') . "</td>
+                    <td>" . ($users[$pin] ?? '-') . "</td>
+                    <td>" . ($nip_data[$pin]['bagian'] ?? '-') . "</td>
+                    <td>" . date('d/m/Y', strtotime($tanggal_str)) . "</td>
+                    <td>-</td>
+                    <td class='status-none'>Tidak Absen</td>
+                    <td>-</td>
+                </tr>";
+            }
+        }
+    }
+    ?>
+    </tbody>
+</table>
 
 </body>
 </html>

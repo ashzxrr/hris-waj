@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/includes/config.php';
 require __DIR__ . '/includes/functions.php';
+require __DIR__ . '/includes/header.php';
 
 // Ambil data user dari mesin fingerprint
 $users = getUsers($ip, $port, $key);
@@ -102,14 +103,12 @@ document.addEventListener('DOMContentLoaded', function() {
 <h2>📋 Data User Fingerprint</h2>
 
 <div class="form-container">
-    <form method="POST" action="detail.php" onsubmit="return validateForm()">
+    <form method="POST" action="detail-noabs-minggu.php" onsubmit="return validateForm()">
         <div class="form-row">
             <label>📅 Dari Tanggal: <input type="date" name="tanggal_dari" required></label>
             <label>📅 Sampai Tanggal: <input type="date" name="tanggal_sampai" required></label>
-        </div>
-        
-        <div class="button-container">
-            <button type="submit" name="detailBtn" class="btn-primary">➡️ Lihat Detail Absensi</button>
+     
+            <button type="submit" name="detailBtn" class="btn-primary">➡️ Detail Absensi</button>
         </div>
         
         <div class="search-container">
