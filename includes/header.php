@@ -38,7 +38,8 @@
     <div class="container">
         <a class="navbar-brand d-flex align-items-center" href="#">
           <img src="images/logo.png" alt="Logo" class="navbar-logo" />
-            Management Absensi
+            HUMAN RESOURES INFORMATION SYSTEM
+
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
