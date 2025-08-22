@@ -11,4 +11,8 @@ if ($mysqli->connect_errno) {
     die("Gagal konek MySQL: " . $mysqli->connect_error);
 }
 
+$dbHost = "localhost";
+$dbUser = "root"; 
+$dbPass = "";
+$dbName = "absensi";
 ?>

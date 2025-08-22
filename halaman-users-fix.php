@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <h2>📋 Data User Fingerprint</h2>
 
 <div class="form-container">
-    <form method="POST" action="detail-noabs.php" onsubmit="return validateForm()">
+    <form method="POST" action="detail-new.php" onsubmit="return validateForm()">
         <div class="form-row">
             <label>📅 Dari Tanggal: <input type="date" name="tanggal_dari" required></label>
             <label>📅 Sampai Tanggal: <input type="date" name="tanggal_sampai" required></label>

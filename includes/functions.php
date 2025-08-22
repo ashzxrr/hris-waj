@@ -133,30 +133,55 @@ function getAttendanceStats($data_absen) {
     return $stats;
 }
 
-// Helper function untuk export data ke CSV
+// Helper function untuk export data ke CSV - Updated dengan field dari database
 function exportToCsv($data_absen, $filename = null) {
     if (!$filename) {
         $filename = 'absensi_' . date('Y-m-d_H-i-s') . '.csv';
     }
 
-    header('Content-Type: text/csv');
+    header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     
     $output = fopen('php://output', 'w');
     
-    // Header CSV
-    fputcsv($output, ['No', 'Nama', 'PIN', 'Tanggal', 'Waktu', 'Verified', 'Status']);
+    // Add BOM untuk proper UTF-8 encoding di Excel
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+    
+    // Header CSV dengan field database
+    fputcsv($output, [
+        'No', 
+        'PIN', 
+        'NIP', 
+        'Nama', 
+        'NIK', 
+        'Jenis Kelamin', 
+        'Job Title', 
+        'Job Level', 
+        'Bagian', 
+        'Departemen', 
+        'Tanggal', 
+        'Waktu', 
+        'Status', 
+        'Verified'
+    ]);
     
     // Data
     foreach ($data_absen as $i => $record) {
         fputcsv($output, [
             $i + 1,
-            $record['nama'],
-            $record['pin'],
-            date('d/m/Y', strtotime($record['datetime'])),
-            date('H:i:s', strtotime($record['datetime'])),
-            $record['verified'],
-            $record['status']
+            $record['pin'] ?? '-',
+            $record['nip'] ?? '-',
+            $record['nama'] ?? '-',
+            $record['nik'] ?? '-',
+            $record['jk'] ?? '-',
+            $record['job_title'] ?? '-',
+            $record['job_level'] ?? '-',
+            $record['bagian'] ?? '-',
+            $record['departemen'] ?? '-',
+            isset($record['datetime']) ? date('d/m/Y', strtotime($record['datetime'])) : '-',
+            isset($record['datetime']) ? date('H:i:s', strtotime($record['datetime'])) : '-',
+            $record['status'] ?? '-',
+            $record['verified'] ?? '-'
         ]);
     }
     
@@ -179,4 +204,4 @@ function formatTanggalIndonesia($tanggal) {
     
     return $hari . ' ' . $bulan[$bulan_idx] . ' ' . $tahun;
 }
-?> 
+?>
