@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Action Buttons -->
 <div style="margin-bottom: 15px;">
-    <a href="halaman-users-fix.php" class="btn btn-secondary">⬅️ Kembali</a>
+    <a href="halaman-users-merge.php" class="btn btn-secondary">⬅️ Kembali</a>
     <?php if (!empty($filtered_attendance)): ?>
         <form method="POST" style="display: inline;">
             <input type="hidden" name="detailBtn" value="1">

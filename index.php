@@ -60,5 +60,5 @@ require __DIR__ . '/includes/header.php';
 </section>
 
 <?php
-require __DIR__ . '/includes/footer.php';
+//require __DIR__ . '/includes/footer.php';
 ?>
