@@ -116,8 +116,103 @@ $users_database_only = count(array_filter($combined_users, function($user) { ret
         .btn-primary { background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 3px; }
         .btn-primary:hover { background: #0056b3; }
         .select-all { margin-bottom: 10px; }
-        .search-container { margin-bottom: 15px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .search-input { padding: 8px; width: 300px; border: 1px solid #ddd; border-radius: 3px; }
+        .date-container {
+    margin-bottom: 20px;
+}
+
+.date-input {
+    padding: 8px 15px;
+    border: 1px solid #e2e8f0;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    background: #f8fafc;
+    color: #475569;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    width: 140px;
+}
+
+.date-input:focus {
+    outline: none;
+    border-color: #45caff;
+    box-shadow: 0 3px 12px rgba(69, 202, 255, 0.15);
+    background: white;
+}
+
+.date-buttons {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.date-btn {
+    padding: 6px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    background: white;
+    color: #475569;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.date-btn:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.date-btn.active {
+    background: linear-gradient(135deg, #45caff 0%, #5c9dff 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 2px 8px rgba(69, 202, 255, 0.2);
+}
+       .search-container {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        }
+       .search-input {
+        padding: 10px 15px;
+        width: 300px;
+        border: 1px solid #e2e8f0;
+        border-radius: 25px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        background: #f8fafc;
+        color: #475569;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .search-input:focus {
+        outline: none;
+        border-color: #45caff;
+        box-shadow: 0 3px 12px rgba(69, 202, 255, 0.15);
+        background: white;
+         }
+        .search-input::placeholder {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        }
+
+         /* Style for the search label */
+        .search-container label {
+        font-weight: 500;
+        color: #475569;
+        font-size: 0.95rem;
+        }
+
+        /* Stats counter style */
+        .search-stats {
+        color: #64748b;
+        font-size: 0.85rem;
+        padding: 8px 15px;
+        background: #f1f5f9;
+        border-radius: 20px;
+        display: inline-block;
+        }
         .filter-buttons { display: flex; gap: 5px; flex-wrap: wrap; }
         .filter-btn { padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 3px; cursor: pointer; font-size: 11px; }
         .filter-btn.active { background: #007bff; color: white; }
@@ -138,6 +233,60 @@ $users_database_only = count(array_filter($combined_users, function($user) { ret
         .pin-col { width: 60px; }
         .status-col { width: 120px; }
         .checkbox-col { width: 50px; text-align: center; }
+
+        .btn-primary {
+        background: linear-gradient(135deg, #45caff 0%, #5c9dff 100%);
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 25px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-primary::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        pointer-events: none;
+    }
+
+    .btn-primary::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: -30%;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        pointer-events: none;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(69, 202, 255, 0.3);
+        background: linear-gradient(135deg, #5c9dff 0%, #45caff 100%);
+    }
+
+    /* Optional: Add hover effect to the emoji */
+    .btn-primary:hover .emoji {
+        transform: translateX(3px);
+    }
+
+    .emoji {
+        display: inline-block;
+        transition: transform 0.3s ease;
+    }
     </style>
     <script>
         let currentFilter = 'all';
@@ -181,7 +330,68 @@ $users_database_only = count(array_filter($combined_users, function($user) { ret
                 const namaMesin = row.cells[2].textContent.toLowerCase();
                 const namaDb = row.cells[3].textContent.toLowerCase();
                 const nip = row.cells[4].textContent.toLowerCase();
+                const jobTitle = row.cells[6].textContent.toLowerCase();
+                const jobLevel = row.cells[7].textContent.toLowerCase();
                 const bagian = row.cells[8].textContent.toLowerCase();
+                function searchAndFilter() {
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    const tableRows = document.querySelectorAll('tbody tr');
+    let visibleCount = 0;
+    
+    tableRows.forEach(row => {
+        // Get all cell values from the row
+        const pin = row.cells[1].textContent.toLowerCase();
+        const nama = row.cells[2].textContent.toLowerCase();
+        const nip = row.cells[3].textContent.toLowerCase();
+        const nik = row.cells[4].textContent.toLowerCase();
+        const jk = row.cells[5].textContent.toLowerCase();
+        const job_title = row.cells[6].textContent.toLowerCase();
+        const job_level = row.cells[7].textContent.toLowerCase();
+        const bagian = row.cells[8].textContent.toLowerCase();
+        const departemen = row.cells[9].textContent.toLowerCase();
+        
+        const status = row.getAttribute('data-status');
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        
+        // Check search criteria against all columns
+        const matchSearch = pin.includes(searchInput) || 
+                          nama.includes(searchInput) || 
+                          nip.includes(searchInput) ||
+                          nik.includes(searchInput) ||
+                          jk.includes(searchInput) ||
+                          job_title.includes(searchInput) ||
+                          job_level.includes(searchInput) ||
+                          bagian.includes(searchInput) ||
+                          departemen.includes(searchInput);
+        
+        // Check filter criteria
+        const matchFilter = currentFilter === 'all' || 
+                          (currentFilter === 'both' && status === 'both') ||
+                          (currentFilter === 'machine' && status === 'machine') ||
+                          (currentFilter === 'database' && status === 'database');
+        
+        if (matchSearch && matchFilter) {
+            row.style.display = '';
+            row.classList.remove('hidden');
+            if (checkbox) checkbox.classList.remove('hidden');
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+            row.classList.add('hidden');
+            if (checkbox) {
+                checkbox.classList.add('hidden');
+                checkbox.checked = false;
+            }
+        }
+    });
+    
+    document.getElementById('userCount').textContent = visibleCount;
+    document.querySelector('input[onchange="toggleAll(this)"]').checked = false;
+    updateSelectedCount();
+}
+
+
+
                 const status = row.getAttribute('data-status');
                 const checkbox = row.querySelector('input[type="checkbox"]');
                 
@@ -250,6 +460,50 @@ $users_database_only = count(array_filter($combined_users, function($user) { ret
             document.querySelector('input[name="tanggal_dari"]').value = todayStr;
             document.querySelector('input[name="tanggal_sampai"]').value = todayStr;
         });
+
+        function setCurrentMonth() {
+            const now = new Date();
+            // Set first day of current month
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 2);
+            // Set last day by getting day 0 of next month (which is last day of current month)
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            
+            document.getElementById('startDate').value = formatDate(firstDay);
+            document.getElementById('endDate').value = formatDate(lastDay);
+            updateDateButtons(this);
+        }
+
+
+function setPreviousMonth() {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+    
+    document.getElementById('startDate').value = formatDate(firstDay);
+    document.getElementById('endDate').value = formatDate(lastDay);
+    updateDateButtons(this);
+}
+
+function setCustomRange() {
+    document.getElementById('startDate').focus();
+    updateDateButtons(this);
+}
+
+function formatDate(date) {
+    return date.toISOString().split('T')[0];
+}
+
+function updateDateButtons(clickedBtn) {
+    document.querySelectorAll('.date-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    clickedBtn.classList.add('active');
+}
+
+// Initialize with current month
+document.addEventListener('DOMContentLoaded', () => {
+    setCurrentMonth();
+});
     </script>
 </head>
 <body>
@@ -257,10 +511,24 @@ $users_database_only = count(array_filter($combined_users, function($user) { ret
 
     <div class="form-container">
         <form method="POST" action="detail-new.php" onsubmit="return validateForm()">
+            
             <div class="form-row">
-                <label>📅 Dari Tanggal: <input type="date" name="tanggal_dari" required></label>
-                <label>📅 Sampai Tanggal: <input type="date" name="tanggal_sampai" required></label>
-                <button type="submit" name="detailBtn" class="btn-primary">➡️ Detail Absensi</button>
+                <div class="date-container">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <label>📅 Periode:</label>
+                        <input type="date" id="startDate" name="tanggal_dari" class="date-input" value="<?= date('Y-m-01') ?>">
+                        <span>s/d</span>
+                        <input type="date" id="endDate" name="tanggal_sampai" class="date-input" value="<?= date('Y-m-t') ?>">
+                    </div>
+                     <div class="date-buttons">
+                        <button type="button" class="date-btn active" onclick="setCurrentMonth()">Bulan Ini</button>
+                        <button type="button" class="date-btn" onclick="setPreviousMonth()">Bulan Lalu</button>
+                        <button type="button" class="date-btn" onclick="setCustomRange()">Custom</button>
+                         <button type="submit" name="detailBtn" class="btn-primary"> Detail Absensi<span class="emoji">➡️</span></button>
+                    </div>
+                </div>
+
+               
             </div>
             
             <div class="search-container">
@@ -292,6 +560,7 @@ $users_database_only = count(array_filter($combined_users, function($user) { ret
                             <th>NIK</th>
                             <th>L/P</th>
                             <th>Job Title</th>
+                            <th>Job Level</th>
                             <th>Bagian</th>
                             <th>Departemen</th>
                         </tr>
@@ -312,6 +581,7 @@ $users_database_only = count(array_filter($combined_users, function($user) { ret
                                 <td><?= htmlspecialchars($user['nik']) ?></td>
                                 <td><?= htmlspecialchars($user['jk']) ?></td>
                                 <td><?= htmlspecialchars($user['job_title']) ?></td>
+                                <td><?= htmlspecialchars($user['job_level']) ?></td>
                                 <td><?= htmlspecialchars($user['bagian']) ?></td>
                                 <td><?= htmlspecialchars($user['departemen']) ?></td>
                             </tr>
