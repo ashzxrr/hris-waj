@@ -1,6 +1,15 @@
 <?php
-require __DIR__ . '/includes/header.php';
+session_start();
 require __DIR__ . '/includes/config.php';
+
+// Proteksi: redirect ke login jika belum login
+if (!isset($_SESSION['user_id'])) {
+    header('Location: index.php');
+    exit();
+}
+
+// sekarang boleh include header (yang berisi markup HTML)
+require __DIR__ . '/includes/header.php';
 
 // Query untuk mengambil data statistik
 $stats = [
@@ -161,6 +170,22 @@ try {
         .value-text {
             font-size: 1.5rem;
         }
+    }
+
+     .page-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #ffffff;
+        z-index: 9999;
+        opacity: 1;
+        transition: opacity 0.5s ease-out;
+    }
+    
+    .page-loader.fade-out {
+        opacity: 0;
     }
 </style>
 

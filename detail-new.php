@@ -1,10 +1,16 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require __DIR__ . '/includes/config.php';
 require __DIR__ . '/includes/functions.php';
 
+// Debug untuk melihat data yang diterima
+error_log('POST Data: ' . print_r($_POST, true));
+
 // Cek apakah form sudah disubmit
 if (!isset($_POST['detailBtn']) || empty($_POST['selected_users']) || empty($_POST['tanggal_dari']) || empty($_POST['tanggal_sampai'])) {
-    header('Location: halaman-users.php');
+    header('Location: halaman-users-merge.php');
     exit;
 }
 
