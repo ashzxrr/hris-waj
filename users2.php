@@ -13,34 +13,61 @@ $result = mysqli_query($mysqli, $query);
 
 if ($result) {
     while ($row = mysqli_fetch_assoc($result)) {
-        $database_users[$row['pin']] = $row;
+        $database_users[$row['pin']] = [
+            'nip' => $row['nip'],
+            'nik' => $row['nik'],
+            'nama' => $row['nama'],
+            'jk' => $row['jk'],
+            'job_title' => $row['job_title'],
+            'job_level' => $row['job_level'],
+            'bagian' => $row['bagian'],
+            'departemen' => $row['departemen']
+        ];
     }
 }
 
 // Gabungkan data dari mesin dan database
 $combined_users = [];
 
-// 1. Tambahkan semua user dari mesin fingerprint
+// Tambahkan user dari mesin fingerprint
 foreach ($users as $pin => $name) {
+    // Skip jika user ada di database dengan NIP resign (case insensitive)
+    if (
+        isset($database_users[$pin]) && isset($database_users[$pin]['nip']) &&
+        strtolower(trim($database_users[$pin]['nip'])) === 'resign'
+    ) {
+        continue;
+    }
+
+    // Skip jika user tidak ada di database (yang akan menghasilkan data "-")
+    if (!isset($database_users[$pin])) {
+        continue;
+    }
+
     $combined_users[$pin] = [
         'pin' => $pin,
         'nama_mesin' => $name,
-        'nama_db' => isset($database_users[$pin]) ? $database_users[$pin]['nama'] : '-',
-        'nip' => isset($database_users[$pin]) ? $database_users[$pin]['nip'] : '-',
-        'nik' => isset($database_users[$pin]) ? $database_users[$pin]['nik'] : '-',
-        'jk' => isset($database_users[$pin]) ? $database_users[$pin]['jk'] : '-',
-        'job_title' => isset($database_users[$pin]) ? $database_users[$pin]['job_title'] : '-',
-        'job_level' => isset($database_users[$pin]) ? $database_users[$pin]['job_level'] : '-',
-        'bagian' => isset($database_users[$pin]) ? $database_users[$pin]['bagian'] : '-',
-        'departemen' => isset($database_users[$pin]) ? $database_users[$pin]['departemen'] : '-',
-        'status' => isset($database_users[$pin]) ? 'Ada di Keduanya' : 'Hanya di Mesin',
+        'nama_db' => $database_users[$pin]['nama'],
+        'nip' => $database_users[$pin]['nip'],
+        'nik' => $database_users[$pin]['nik'],
+        'jk' => $database_users[$pin]['jk'],
+        'job_title' => $database_users[$pin]['job_title'],
+        'job_level' => $database_users[$pin]['job_level'],
+        'bagian' => $database_users[$pin]['bagian'],
+        'departemen' => $database_users[$pin]['departemen'],
+        'status' => 'Ada di Database',
         'in_machine' => true,
-        'in_database' => isset($database_users[$pin])
+        'in_database' => true
     ];
 }
 
-// 2. Tambahkan user yang hanya ada di database
+// Tambahkan user yang ada di database tapi tidak di mesin
 foreach ($database_users as $pin => $data) {
+    // Skip user dengan NIP resign (sudah difilter di query, tapi double check)
+    if (strtolower(trim($data['nip'])) === 'resign') {
+        continue;
+    }
+
     if (!isset($users[$pin])) {
         $combined_users[$pin] = [
             'pin' => $pin,
@@ -729,24 +756,6 @@ $users_database_only = count(array_filter($combined_users, function ($user) {
 
 <body>
     <h2>👥 Data User Fingerprint & Database</h2>
-    <div class="stats-container">
-        <div class="stat-box">
-            <div class="stat-number"><?= $total_users ?></div>
-            <div class="stat-label">Total User</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-number"><?= $users_both ?></div>
-            <div class="stat-label">Ada di Keduanya</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-number"><?= $users_machine_only ?></div>
-            <div class="stat-label">Hanya di Mesin</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-number"><?= $users_database_only ?></div>
-            <div class="stat-label">Hanya di Database</div>
-        </div>
-    </div>
 
     <div class="form-container">
         <form method="POST" action="detail-fix.php" onsubmit="return validateForm()" id="absenForm">
@@ -799,38 +808,35 @@ $users_database_only = count(array_filter($combined_users, function ($user) {
                     <strong>Pilih Semua User (yang terlihat)</strong>
                 </label>
             </div>
+
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
-                            <th class="checkbox-col">✓</th>
+                            <th class="checkbox-col">Pilih</th>
                             <th class="pin-col">PIN</th>
-                            <th>Nama (Mesin)</th>
-                            <th>Nama (Database)</th>
+                            <th>Nama</th>
                             <th>NIP</th>
                             <th>NIK</th>
-                            <th>Gender</th>
-                            <th>Jabatan</th>
-                            <th>Level</th>
+                            <th>L/P</th>
+                            <th>Job Title</th>
+                            <th>Job Level</th>
                             <th>Bagian</th>
                             <th>Departemen</th>
-                            <th class="status-col">Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($combined_users as $user): ?>
-                            <tr class="user-row"
+                        <?php foreach ($combined_users as $pin => $user): ?>
+                            <tr
                                 data-status="<?= $user['in_machine'] && $user['in_database'] ? 'both' : ($user['in_machine'] ? 'machine' : 'database') ?>">
                                 <td class="checkbox-col">
                                     <?php if ($user['in_machine']): ?>
-                                        <input type="checkbox" name="selected_users[]"
-                                            value="<?= htmlspecialchars($user['pin']) ?>" class="user-checkbox">
+                                        <input type="checkbox" name="selected_users[]" value="<?= htmlspecialchars($pin) ?>">
                                     <?php else: ?>
                                         <span style="color: #ccc;">-</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="pin-col"><?= htmlspecialchars($user['pin']) ?></td>
-                                <td><?= htmlspecialchars($user['nama_mesin']) ?></td>
+                                <td><?= htmlspecialchars($pin) ?></td>
                                 <td><?= htmlspecialchars($user['nama_db']) ?></td>
                                 <td><?= htmlspecialchars($user['nip']) ?></td>
                                 <td><?= htmlspecialchars($user['nik']) ?></td>
@@ -839,12 +845,6 @@ $users_database_only = count(array_filter($combined_users, function ($user) {
                                 <td><?= htmlspecialchars($user['job_level']) ?></td>
                                 <td><?= htmlspecialchars($user['bagian']) ?></td>
                                 <td><?= htmlspecialchars($user['departemen']) ?></td>
-                                <td class="status-col">
-                                    <span
-                                        class="status-<?= $user['in_machine'] && $user['in_database'] ? 'both' : ($user['in_machine'] ? 'machine' : 'database') ?>">
-                                        <?= htmlspecialchars($user['status']) ?>
-                                    </span>
-                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
