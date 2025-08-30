@@ -209,11 +209,25 @@ try {
                     </a>    
                 </div>
 
+                <div class="col-md-3 col-sm-6 mb-4">
+                    <a href="users-payroll.php" class="text-decoration-none">
+                    <div class="card hover-card">
+                        <div class="card-body">
+                            <i class="fa-solid fa-money-bill-wave text-success"></i>
+                            <div class="card-content">
+                                <div class="value-text">Payroll</div>
+                                <div class="value-text"><?= number_format($total_users, 0, ',', '.') ?></div>
+                            </div>
+                        </div>
+                    </div>
+                    </a>    
+                </div>
+
                 <!-- Card 2 -->
                 <div class="col-md-3 col-sm-6 mb-4">
                     <div class="card hover-card">
                         <div class="card-body">
-                            <i class="fa-solid fa-folder fa-1x text-success"></i>
+                            <i class="fa-solid fa-folder fa-1x text-primary"></i>
                             <div class="card-content">
                                 <div class="value-text">Administrasi</div>
                                 <div class="value-text">--</div>
