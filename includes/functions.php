@@ -133,60 +133,85 @@ function getAttendanceStats($data_absen) {
     return $stats;
 }
 
-// Helper function untuk export data ke CSV - Updated dengan field dari database
+// Helper function untuk export data ke CSV
 function exportToCsv($data_absen, $filename = null) {
+    ob_clean(); // Bersihkan output buffer
+    
     if (!$filename) {
         $filename = 'absensi_' . date('Y-m-d_H-i-s') . '.csv';
     }
-
-    header('Content-Type: text/csv; charset=utf-8');
+    
+    // Pastikan filename aman
+    $filename = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $filename);
+    
+    // Set headers untuk download
+    header('Content-Type: text/csv');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
     
-    $output = fopen('php://output', 'w');
-    
-    // Add BOM untuk proper UTF-8 encoding di Excel
-    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-    
-    // Header CSV dengan field database
-    fputcsv($output, [
-        'No', 
-        'PIN', 
-        'NIP', 
-        'Nama', 
-        'NIK', 
-        'Jenis Kelamin', 
-        'Job Title', 
-        'Job Level', 
-        'Bagian', 
-        'Departemen', 
-        'Tanggal', 
-        'Waktu', 
-        'Status', 
-        'Verified'
-    ]);
-    
-    // Data
-    foreach ($data_absen as $i => $record) {
+    try {
+        $output = fopen('php://temp', 'r+');
+        
+        // Add BOM untuk proper UTF-8 encoding di Excel
+        fwrite($output, "\xEF\xBB\xBF");
+        
+        // Header CSV
         fputcsv($output, [
-            $i + 1,
-            $record['pin'] ?? '-',
-            $record['nip'] ?? '-',
-            $record['nama'] ?? '-',
-            $record['nik'] ?? '-',
-            $record['jk'] ?? '-',
-            $record['job_title'] ?? '-',
-            $record['job_level'] ?? '-',
-            $record['bagian'] ?? '-',
-            $record['departemen'] ?? '-',
-            isset($record['datetime']) ? date('d/m/Y', strtotime($record['datetime'])) : '-',
-            isset($record['datetime']) ? date('H:i:s', strtotime($record['datetime'])) : '-',
-            $record['status'] ?? '-',
-            $record['verified'] ?? '-'
+            'No', 
+            'PIN', 
+            'NIP', 
+            'Nama', 
+            'NIK', 
+            'Jenis Kelamin', 
+            'Job Title', 
+            'Job Level', 
+            'Bagian', 
+            'Departemen', 
+            'Tanggal', 
+            'Waktu', 
+            'Status', 
+            'Verified'
         ]);
+        
+        // Data
+        foreach ($data_absen as $i => $record) {
+            $tanggal = isset($record['datetime']) ? date('d/m/Y', strtotime($record['datetime'])) : '-';
+            $waktu = isset($record['datetime']) ? date('H:i:s', strtotime($record['datetime'])) : '-';
+            
+            fputcsv($output, [
+                $i + 1,
+                $record['pin'] ?? '-',
+                $record['nip'] ?? '-',
+                $record['nama'] ?? '-',
+                $record['nik'] ?? '-',
+                $record['jk'] ?? '-',
+                $record['job_title'] ?? '-',
+                $record['job_level'] ?? '-',
+                $record['bagian'] ?? '-',
+                $record['departemen'] ?? '-',
+                $tanggal,
+                $waktu,
+                $record['status'] ?? '-',
+                $record['verified'] ?? '-'
+            ]);
+        }
+        
+        // Reset pointer
+        rewind($output);
+        
+        // Output file contents
+        fpassthru($output);
+        fclose($output);
+        
+    } catch (Exception $e) {
+        // Log error jika perlu
+        error_log("Error exporting CSV: " . $e->getMessage());
+        header("HTTP/1.1 500 Internal Server Error");
+        echo "Error generating CSV file";
     }
     
-    fclose($output);
-    exit;
+    exit();
 }
 
 // Helper function untuk format tanggal Indonesia

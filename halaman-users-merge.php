@@ -6,9 +6,9 @@ require __DIR__ . '/includes/header.php';
 // Ambil data user dari mesin fingerprint
 $users = getUsers($ip, $port, $key);
 
-// Ambil semua data user dari database (kecuali yang NIP-nya RESIGN)
+// Ambil semua data user dari database (termasuk yang NIP-nya RESIGN untuk styling)
 $database_users = [];
-$query = "SELECT pin, nip, nik, nama, jk, job_title, job_level, bagian, departemen FROM users WHERE LOWER(TRIM(nip)) != 'resign' ORDER BY CAST(pin AS UNSIGNED)";
+$query = "SELECT pin, nip, nik, nama, jk, job_title, job_level, bagian, departemen FROM users ORDER BY CAST(pin AS UNSIGNED)";
 $result = mysqli_query($mysqli, $query);
 
 if ($result) {
@@ -35,13 +35,15 @@ foreach ($users as $pin => $name) {
         'departemen' => isset($database_users[$pin]) ? $database_users[$pin]['departemen'] : '-',
         'status' => isset($database_users[$pin]) ? 'Ada di Keduanya' : 'Hanya di Mesin',
         'in_machine' => true,
-        'in_database' => isset($database_users[$pin])
+        'in_database' => isset($database_users[$pin]),
+        'is_resign' => isset($database_users[$pin]) && strtolower(trim($database_users[$pin]['nip'])) === 'resign'
     ];
 }
 
 // 2. Tambahkan user yang hanya ada di database
 foreach ($database_users as $pin => $data) {
     if (!isset($users[$pin])) {
+        $is_resign = strtolower(trim($data['nip'])) === 'resign';
         $combined_users[$pin] = [
             'pin' => $pin,
             'nama_mesin' => '-',
@@ -55,7 +57,8 @@ foreach ($database_users as $pin => $data) {
             'departemen' => $data['departemen'],
             'status' => 'Hanya di Database',
             'in_machine' => false,
-            'in_database' => true
+            'in_database' => true,
+            'is_resign' => $is_resign
         ];
     }
 }
@@ -65,17 +68,23 @@ uksort($combined_users, function ($a, $b) {
     return (int) $a - (int) $b;
 });
 
-// Hitung statistik
-$total_users = count($combined_users);
-$users_both = count(array_filter($combined_users, function ($user) {
+// Hitung statistik (exclude resign users)
+$non_resign_users = array_filter($combined_users, function($user) {
+    return !$user['is_resign'];
+});
+
+$total_users = count($non_resign_users);
+$users_both = count(array_filter($non_resign_users, function ($user) {
     return $user['in_machine'] && $user['in_database'];
 }));
-$users_machine_only = count(array_filter($combined_users, function ($user) {
+$users_machine_only = count(array_filter($non_resign_users, function ($user) {
     return $user['in_machine'] && !$user['in_database'];
 }));
-$users_database_only = count(array_filter($combined_users, function ($user) {
+$users_database_only = count(array_filter($non_resign_users, function ($user) {
     return !$user['in_machine'] && $user['in_database'];
 }));
+
+$resign_count = count($combined_users) - count($non_resign_users);
 ?>
 
 <!DOCTYPE html>
@@ -84,443 +93,105 @@ $users_database_only = count(array_filter($combined_users, function ($user) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="assets/css/style.css">
     <title>Data User Fingerprint & Database</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+        /* Style untuk baris RESIGN */
+        .user-row.resign {
+            background-color: #ffe6e6 !important;
+            color: #cc0000;
+        }
+        
+        .user-row.resign:hover {
+            background-color: #ffcccc !important;
+        }
+        
+        .user-row.resign td {
+            border-color: #ffb3b3;
+        }
+        
+        /* Style untuk checkbox yang disabled pada user resign */
+        .user-row.resign input[type="checkbox"] {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Update legend untuk menambah info resign */
+        .resign-legend {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #cc0000;
+        }
+        
+        .legend-color.legend-resign {
+            width: 12px;
+            height: 12px;
+            background-color: #ffe6e6;
+            border: 1px solid #cc0000;
+            border-radius: 2px;
+        }
+        
+        .stats-container .stat-box.resign {
+            background: linear-gradient(135deg, #ffe6e6, #ffcccc);
+            color: #cc0000;
+            border: 1px solid #ffb3b3;
         }
 
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 10px;
+        .btn-secondary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
-        th,
-        td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left;
-            font-size: 12px;
+        /* Style untuk highlight user yang hanya ada di mesin */
+        .user-row.machine-only-highlight {
+            background-color: #e8f5e8 !important;
+            border-left: 4px solid #28a745;
         }
 
-        th {
-            background: #f0f0f0;
-            position: sticky;
-            top: 0;
-            z-index: 10;
+        .user-row.machine-only-highlight:hover {
+            background-color: #d4edda !important;
         }
 
-        tr:nth-child(even) {
-            background: #f9f9f9;
-        }
-
-        button {
-            padding: 5px 10px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-
-        .form-container {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 5px;
-        }
-
-        .form-row {
-            margin-bottom: 10px;
-        }
-
-        .form-row label {
-            margin-right: 15px;
-        }
-
-        .btn-primary {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 3px;
-        }
-
-        .btn-primary:hover {
-            background: #0056b3;
+        /* Update checkbox styling untuk user yang bisa ditambahkan */
+        .user-row.machine-only input[type="checkbox"].add-user {
+            accent-color: #28a745;
         }
 
         .select-all {
-            margin-bottom: 10px;
-        }
+    background-color: #f8fafc;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
 
-        .date-container {
-            margin-bottom: 20px;
-        }
+.select-all .d-flex {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
-        .date-input {
-            padding: 8px 15px;
-            border: 1px solid #e2e8f0;
-            border-radius: 25px;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-            background: #f8fafc;
-            color: #475569;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            width: 140px;
-        }
+.small-legend {
+    display: flex;
+    gap: 15px;
+    margin-left: 15px;
+}
 
-        .date-input:focus {
-            outline: none;
-            border-color: #45caff;
-            box-shadow: 0 3px 12px rgba(69, 202, 255, 0.15);
-            background: white;
-        }
-
-        .date-buttons {
-            margin-top: 10px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .date-btn {
-            padding: 6px 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 20px;
-            background: white;
-            color: #475569;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .date-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(69, 202, 255, 0.15);
-        }
-
-        .date-btn.active {
-            background: linear-gradient(135deg, #45caff 0%, #5c9dff 100%);
-            color: white;
-            border: none;
-            box-shadow: 0 2px 8px rgba(69, 202, 255, 0.2);
-            transform: translateY(-1px);
-        }
-
-        .search-container {
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-
-        .search-input {
-            padding: 10px 15px;
-            width: 300px;
-            border: 1px solid #e2e8f0;
-            border-radius: 25px;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-            background: #f8fafc;
-            color: #475569;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: #45caff;
-            box-shadow: 0 3px 12px rgba(69, 202, 255, 0.15);
-            background: white;
-        }
-
-        .search-input::placeholder {
-            color: #94a3b8;
-            font-size: 0.85rem;
-        }
-
-        /* Style for the search label */
-        .search-container label {
-            font-weight: 500;
-            color: #475569;
-            font-size: 0.95rem;
-        }
-
-        /* Stats counter style */
-        .search-stats {
-            color: #64748b;
-            font-size: 0.85rem;
-            padding: 8px 15px;
-            background: #f1f5f9;
-            border-radius: 20px;
-            display: inline-block;
-        }
-
-        .filter-buttons {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
-
-        .filter-btn {
-            padding: 6px 12px;
-            border: 1px solid #ddd;
-            background: white;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 11px;
-        }
-
-        .filter-btn.active {
-            background: #007bff;
-            color: white;
-        }
-
-        .button-container {
-            margin: 15px 0;
-            text-align: center;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .stats-container {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .stat-box {
-            background: #fff;
-            border: 1px solid #ddd;
-            padding: 12px;
-            border-radius: 5px;
-            text-align: center;
-            min-width: 120px;
-        }
-
-        .stat-number {
-            font-size: 20px;
-            font-weight: bold;
-            color: #007bff;
-        }
-
-        .stat-label {
-            font-size: 11px;
-            color: #666;
-            margin-top: 4px;
-        }
-
-        /* Status styling */
-        .status-both {
-            background: #d4edda;
-            color: #155724;
-            font-weight: bold;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 10px;
-        }
-
-        .status-machine {
-            background: #fff3cd;
-            color: #856404;
-            font-weight: bold;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 10px;
-        }
-
-        .status-database {
-            background: #f8d7da;
-            color: #721c24;
-            font-weight: bold;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 10px;
-        }
-
-        /* Table styling */
-        .table-container {
-            max-height: 600px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-        }
-
-        .pin-col {
-            width: 60px;
-        }
-
-        .status-col {
-            width: 120px;
-        }
-
-        .checkbox-col {
-            width: 50px;
-            text-align: center;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #45caff 0%, #5c9dff 100%);
-            color: white;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 25px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            pointer-events: none;
-        }
-
-        .btn-primary::after {
-            content: '';
-            position: absolute;
-            bottom: -30%;
-            left: -30%;
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            pointer-events: none;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(69, 202, 255, 0.3);
-            background: linear-gradient(135deg, #5c9dff 0%, #45caff 100%);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        /* Optional: Add hover effect to the emoji */
-        .btn-primary:hover .emoji {
-            transform: translateX(3px);
-        }
-
-        .emoji {
-            display: inline-block;
-            transition: transform 0.3s ease;
-        }
-
-        /* Tambahkan style berikut di dalam tag <style> */
-        .loading-indicator {
-            display: none;
-            align-items: center;
-            gap: 10px;
-            margin-left: 15px;
-            animation: fadeIn 0.3s ease-in;
-        }
-
-        .loading-indicator.show {
-            display: inline-flex;
-        }
-
-        .loading-dots {
-            display: inline-flex;
-            gap: 4px;
-        }
-
-        .loading-dots span {
-            width: 6px;
-            height: 6px;
-            background: #5c9dff;
-            border-radius: 50%;
-            animation: bounce 1.4s infinite ease-in-out both;
-        }
-
-        .loading-dots span:nth-child(1) {
-            animation-delay: -0.32s;
-        }
-
-        .loading-dots span:nth-child(2) {
-            animation-delay: -0.16s;
-        }
-
-        .loading-text {
-            color: #5c9dff;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-
-        @keyframes bounce {
-
-            0%,
-            80%,
-            100% {
-                transform: scale(0);
-            }
-
-            40% {
-                transform: scale(1);
-            }
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-5px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .btn-primary .spinner {
-            display: none;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 0.8s linear infinite;
-            margin-right: 8px;
-        }
-
-        .btn-primary.loading .spinner {
-            display: inline-block;
-        }
-
-        .btn-primary.loading .emoji {
-            display: none;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
+/* Update button style untuk konsistensi dengan layout baru */
+.btn-secondary {
+    padding: 6px 15px;
+    height: 32px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
     </style>
     <script>
         let currentFilter = 'all';
 
         function toggleAll(source) {
-            const checkboxes = document.querySelectorAll('input[name="selected_users[]"]:not(.hidden)');
+            const checkboxes = document.querySelectorAll('input[name="selected_users[]"]:not(.hidden):not(:disabled)');
             checkboxes.forEach(checkbox => checkbox.checked = source.checked);
             updateSelectedCount();
         }
@@ -557,6 +228,46 @@ $users_database_only = count(array_filter($combined_users, function ($user) {
 
             return true; // Ini penting! Harus return true agar form bisa submit
         }
+
+        function validateAddUsers() {
+            const machineOnlyCheckboxes = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)');
+            const selectedMachineOnly = Array.from(machineOnlyCheckboxes).filter(checkbox => {
+                return checkbox.closest('tr').classList.contains('machine-only');
+            });
+
+            if (selectedMachineOnly.length === 0) {
+                alert('⚠️ Pilih minimal satu user yang hanya ada di mesin (baris hijau) untuk ditambahkan ke database!');
+                return false;
+            }
+
+            // Buat hidden inputs untuk data user yang dipilih
+            const form = document.getElementById('absenForm');
+            
+            // Hapus hidden inputs yang lama jika ada
+            const oldInputs = form.querySelectorAll('input[name^="user_data"]');
+            oldInputs.forEach(input => input.remove());
+
+            // Tambahkan data user yang dipilih
+            selectedMachineOnly.forEach((checkbox, index) => {
+                const row = checkbox.closest('tr');
+                const pin = checkbox.value;
+                const namaMesin = row.cells[2].textContent.trim();
+                
+                // Buat hidden inputs untuk pin dan nama
+                const pinInput = document.createElement('input');
+                pinInput.type = 'hidden';
+                pinInput.name = `user_data[${index}][pin]`;
+                pinInput.value = pin;
+                form.appendChild(pinInput);
+                
+                const namaInput = document.createElement('input');
+                namaInput.type = 'hidden';
+                namaInput.name = `user_data[${index}][nama]`;
+                namaInput.value = namaMesin;
+                form.appendChild(namaInput);
+            });
+        }
+        
         function showLoading() {
             const submitBtn = document.getElementById('submitBtn');
             const loadingText = document.getElementById('loadingText');
@@ -655,6 +366,40 @@ $users_database_only = count(array_filter($combined_users, function ($user) {
             if (selectedCountElement) {
                 selectedCountElement.textContent = selectedCount;
             }
+
+            // Update tombol tambah user berdasarkan selection
+            updateAddUserButton();
+        }
+
+        function updateAddUserButton() {
+            const addUserBtn = document.getElementById('addUserBtn');
+            const machineOnlyCheckboxes = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)');
+            const selectedMachineOnly = Array.from(machineOnlyCheckboxes).filter(checkbox => {
+                return checkbox.closest('tr').classList.contains('machine-only');
+            });
+
+            if (selectedMachineOnly.length > 0) {
+                addUserBtn.disabled = false;
+                addUserBtn.innerHTML = `<span class="emoji">👤➕</span> Tambah ${selectedMachineOnly.length} User ke Database`;
+                
+                // Highlight selected machine-only rows
+                document.querySelectorAll('.machine-only').forEach(row => {
+                    const checkbox = row.querySelector('input[name="selected_users[]"]');
+                    if (checkbox && checkbox.checked && !checkbox.classList.contains('hidden')) {
+                        row.classList.add('machine-only-highlight');
+                    } else {
+                        row.classList.remove('machine-only-highlight');
+                    }
+                });
+            } else {
+                addUserBtn.disabled = true;
+                addUserBtn.innerHTML = '<span class="emoji">👤➕</span> Tambah User ke Database';
+                
+                // Remove all highlights
+                document.querySelectorAll('.machine-only-highlight').forEach(row => {
+                    row.classList.remove('machine-only-highlight');
+                });
+            }
         }
 
         // Event listeners
@@ -732,7 +477,7 @@ $users_database_only = count(array_filter($combined_users, function ($user) {
     <div class="stats-container">
         <div class="stat-box">
             <div class="stat-number"><?= $total_users ?></div>
-            <div class="stat-label">Total User</div>
+            <div class="stat-label">Total User Aktif</div>
         </div>
         <div class="stat-box">
             <div class="stat-number"><?= $users_both ?></div>
@@ -746,6 +491,12 @@ $users_database_only = count(array_filter($combined_users, function ($user) {
             <div class="stat-number"><?= $users_database_only ?></div>
             <div class="stat-label">Hanya di Database</div>
         </div>
+        <?php if ($resign_count > 0): ?>
+        <div class="stat-box resign">
+            <div class="stat-number"><?= $resign_count ?></div>
+            <div class="stat-label">User Resign</div>
+        </div>
+        <?php endif; ?>
     </div>
 
     <div class="form-container">
@@ -788,17 +539,38 @@ $users_database_only = count(array_filter($combined_users, function ($user) {
                         placeholder="Ketik PIN, Nama, NIP, atau Bagian..." />
                 </div>
                 <div style="color: #666; font-size: 12px;">
-                    <span id="userCount"><?= $total_users ?></span> user ditampilkan |
+                    <span id="userCount"><?= count($combined_users) ?></span> user ditampilkan |
                     <span id="selectedCount">0</span> dipilih
                 </div>
             </div>
-
-            <div class="select-all">
-                <label>
-                    <input type="checkbox" onchange="toggleAll(this)">
-                    <strong>Pilih Semua User (yang terlihat)</strong>
-                </label>
+<div class="select-all">
+    <div class="d-flex align-items-center gap-2" style="justify-content: space-between">
+        <div class="d-flex align-items-center gap-2">
+            <label>
+                <input type="checkbox" onchange="toggleAll(this)">
+                <strong>Pilih Semua User Aktif (yang terlihat)</strong>
+            </label>
+            <div class="small-legend">
+                <div class="legend-item">
+                    <div class="legend-color legend-machine-only"></div>
+                    <span>Hanya di mesin (bisa ditambahkan)</span>
+                </div>
+                <?php if ($resign_count > 0): ?>
+                <div class="legend-item resign-legend">
+                    <div class="legend-color legend-resign"></div>
+                    <span>User Resign</span>
+                </div>
+                <?php endif; ?>
             </div>
+        </div>
+        <button type="submit" name="addUserBtn" value="1" id="addUserBtn" class="btn-secondary" 
+                onclick="return validateAddUsers()" formaction="form-add-user.php">
+            <span class="emoji">👤➕</span> Tambah User ke Database
+        </button>
+    </div>
+</div>
+            
+            <div class="table-container"></div>
             <div class="table-container">
                 <table>
                     <thead>
@@ -814,37 +586,35 @@ $users_database_only = count(array_filter($combined_users, function ($user) {
                             <th>Level</th>
                             <th>Bagian</th>
                             <th>Departemen</th>
-                            <th class="status-col">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($combined_users as $user): ?>
-                            <tr class="user-row"
+                            <tr class="user-row <?= (!$user['in_database']) ? 'machine-only' : '' ?> <?= $user['is_resign'] ? 'resign' : '' ?>"
                                 data-status="<?= $user['in_machine'] && $user['in_database'] ? 'both' : ($user['in_machine'] ? 'machine' : 'database') ?>">
                                 <td class="checkbox-col">
-                                    <?php if ($user['in_machine']): ?>
+                                    <?php if ($user['in_machine'] && !$user['is_resign']): ?>
                                         <input type="checkbox" name="selected_users[]"
-                                            value="<?= htmlspecialchars($user['pin']) ?>" class="user-checkbox">
+                                            value="<?= htmlspecialchars($user['pin']) ?>" 
+                                            class="user-checkbox <?= !$user['in_database'] ? 'add-user' : '' ?>">
+                                    <?php elseif ($user['is_resign']): ?>
+                                        <input type="checkbox" name="selected_users[]"
+                                            value="<?= htmlspecialchars($user['pin']) ?>" class="user-checkbox" disabled 
+                                            title="User dengan status RESIGN tidak dapat dipilih">
                                     <?php else: ?>
                                         <span style="color: #ccc;">-</span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="pin-col"><?= htmlspecialchars($user['pin']) ?></td>
                                 <td><?= htmlspecialchars($user['nama_mesin']) ?></td>
-                                <td><?= htmlspecialchars($user['nama_db']) ?></td>
-                                <td><?= htmlspecialchars($user['nip']) ?></td>
+                                <td><?= htmlspecialchars($user['nama_db']) ?><?= $user['is_resign'] ? ' <small>(RESIGN)</small>' : '' ?></td>
+                                <td style="<?= $user['is_resign'] ? 'font-weight: bold;' : '' ?>"><?= htmlspecialchars($user['nip']) ?></td>
                                 <td><?= htmlspecialchars($user['nik']) ?></td>
                                 <td><?= htmlspecialchars($user['jk']) ?></td>
                                 <td><?= htmlspecialchars($user['job_title']) ?></td>
                                 <td><?= htmlspecialchars($user['job_level']) ?></td>
                                 <td><?= htmlspecialchars($user['bagian']) ?></td>
                                 <td><?= htmlspecialchars($user['departemen']) ?></td>
-                                <td class="status-col">
-                                    <span
-                                        class="status-<?= $user['in_machine'] && $user['in_database'] ? 'both' : ($user['in_machine'] ? 'machine' : 'database') ?>">
-                                        <?= htmlspecialchars($user['status']) ?>
-                                    </span>
-                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

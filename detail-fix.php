@@ -2,9 +2,83 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require __DIR__ . '/includes/header.php';
 require __DIR__ . '/includes/config.php';
 require __DIR__ . '/includes/functions.php';
+
+// Handle export CSV
+if (isset($_POST['exportBtn'])) {
+    ob_start(); // Start output buffering
+    
+    try {
+        if (empty($_POST['selected_users']) || empty($_POST['tanggal_dari']) || empty($_POST['tanggal_sampai'])) {
+            throw new Exception('Data tidak lengkap untuk export');
+        }
+        
+        $selected_users = $_POST['selected_users'];
+        $tanggal_dari = $_POST['tanggal_dari'];
+        $tanggal_sampai = $_POST['tanggal_sampai'];
+        
+        // Ambil data user dan absensi
+        $users = getUsers($ip, $port, $key);
+        $all_attendance = getAttendanceRange($ip, $port, $key, $tanggal_dari, $tanggal_sampai, $users);
+        
+        // Filter data absensi
+        $filtered_attendance = array_filter($all_attendance, function ($record) use ($selected_users) {
+            return in_array($record['pin'], $selected_users);
+        });
+        
+        // Tambahkan data dari database
+        $pins = array_map('intval', $selected_users);
+        $pin_list = implode(',', $pins);
+        $nip_data = [];
+        
+        if (!empty($pins)) {
+            $result = mysqli_query($mysqli, "SELECT pin, nip, bagian, nik, jk, job_title, job_level, bagian, departemen FROM users WHERE pin IN ($pin_list)");
+            if (!$result) {
+                throw new Exception('Error querying database: ' . mysqli_error($mysqli));
+            }
+            
+            while ($row = mysqli_fetch_assoc($result)) {
+                $nip_data[$row['pin']] = [
+                    'nip' => $row['nip'],
+                    'nik' => $row['nik'],
+                    'jk' => $row['jk'],
+                    'job_title' => $row['job_title'],
+                    'job_level' => $row['job_level'],
+                    'bagian' => $row['bagian'],
+                    'departemen' => $row['departemen']
+                ];
+            }
+        }
+        
+        // Tambahkan data database ke setiap record
+        foreach ($filtered_attendance as &$record) {
+            if (isset($nip_data[$record['pin']])) {
+                $record = array_merge($record, $nip_data[$record['pin']]);
+            }
+        }
+        unset($record);
+        
+        ob_end_clean(); // Clear buffer before export
+        
+        // Generate filename
+        $filename = sprintf(
+            'absensi_%s_to_%s.csv',
+            date('Y-m-d', strtotime($tanggal_dari)),
+            date('Y-m-d', strtotime($tanggal_sampai))
+        );
+        
+        exportToCsv($filtered_attendance, $filename);
+        
+    } catch (Exception $e) {
+        ob_end_clean();
+        header('HTTP/1.1 500 Internal Server Error');
+        echo "Error generating export: " . $e->getMessage();
+        exit;
+    }
+}
+
+require __DIR__ . '/includes/header.php';
 
 // Debug untuk melihat data yang diterima
 error_log('POST Data: ' . print_r($_POST, true));
@@ -87,11 +161,6 @@ unset($record);
 
 // Dapatkan statistik
 $stats = getAttendanceStats($filtered_attendance);
-
-// Handle export CSV
-if (isset($_POST['exportBtn'])) {
-    exportToCsv($filtered_attendance, 'absensi_' . $tanggal_dari . '_to_' . $tanggal_sampai . '.csv');
-}
 
 ?>
 <!DOCTYPE html>
