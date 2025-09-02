@@ -94,153 +94,10 @@ $resign_count = count($combined_users) - count($non_resign_users);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style-user.css">
     <title>Data User Fingerprint & Database</title>
-    <style>
-        /* Style untuk baris RESIGN */
-        .user-row.resign {
-            background-color: #ffe6e6 !important;
-            color: #cc0000;
-        }
-
-        .user-row.resign:hover {
-            background-color: #ffcccc !important;
-        }
-
-        .user-row.resign td {
-            border-color: #ffb3b3;
-        }
-
-        /* Style untuk checkbox yang disabled pada user resign */
-        .user-row.resign input[type="checkbox"] {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Update legend untuk menambah info resign */
-        .resign-legend {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 11px;
-            color: #cc0000;
-        }
-
-        .legend-color.legend-resign {
-            width: 12px;
-            height: 12px;
-            background-color: #ffe6e6;
-            border: 1px solid #cc0000;
-            border-radius: 2px;
-        }
-
-        .stats-container .stat-box.resign {
-            background: linear-gradient(135deg, #ffe6e6, #ffcccc);
-            color: #cc0000;
-            border: 1px solid #ffb3b3;
-        }
-
-        .btn-secondary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Style untuk highlight user yang hanya ada di mesin */
-        .user-row.machine-only-highlight {
-            background-color: #e8f5e8 !important;
-            border-left: 4px solid #28a745;
-        }
-
-        .user-row.machine-only-highlight:hover {
-            background-color: #d4edda !important;
-        }
-
-        /* Update checkbox styling untuk user yang bisa ditambahkan */
-        .user-row.machine-only input[type="checkbox"].add-user {
-            accent-color: #28a745;
-        }
-
-        .select-all {
-            background-color: #f8fafc;
-            padding: 10px 15px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }
-
-        .select-all .d-flex {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .small-legend {
-            display: flex;
-            gap: 15px;
-            margin-left: 15px;
-        }
-
-        /* Update button style untuk konsistensi dengan layout baru */
-        .btn-secondary {
-            padding: 6px 15px;
-            height: 32px;
-            font-size: 0.85rem;
-            white-space: nowrap;
-        }
-
-        /* Style untuk filter buttons yang selaras */
-        .filter-buttons {
-            display: inline-flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .filter-btn {
-            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-            color: #475569;
-            border: none;
-            padding: 6px 15px;
-            border-radius: 25px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            height: 32px;
-            display: inline-flex;
-            align-items: center;
-            white-space: nowrap;
-        }
-
-        .filter-btn:hover {
-            transform: translateY(-1px);
-            background: linear-gradient(135deg, #cbd5e1, #94a3b8);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .filter-btn.active {
-            background: linear-gradient(135deg, #45caff, #5c9dff);
-            color: white;
-            box-shadow: 0 2px 8px rgba(69, 202, 255, 0.3);
-        }
-
-        .filter-btn.active:hover {
-            background: linear-gradient(135deg, #5c9dff, #45caff);
-        }
-
-        .filter-btn:active {
-            transform: translateY(0);
-        }
-
-        .btn-primary,
-        .btn-secondary,
-        .date-btn,
-        .filter-btn {
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
-        }
-    </style>
     <script>
         let currentFilter = 'all';
-
         function toggleAll(source) {
             const checkboxes = document.querySelectorAll('input[name="selected_users[]"]:not(.hidden):not(:disabled)');
             checkboxes.forEach(checkbox => checkbox.checked = source.checked);
@@ -345,51 +202,38 @@ $resign_count = count($combined_users) - count($non_resign_users);
             loadingText.classList.remove('show');
         }
 
+        // Tambahkan variabel global
+        let currentBagian = 'all';
+
+        // Update fungsi searchAndFilter
         function searchAndFilter() {
             const searchInput = document.getElementById('searchInput').value.toLowerCase();
             const tableRows = document.querySelectorAll('tbody tr');
             let visibleCount = 0;
 
             tableRows.forEach(row => {
-                // Get all cell values from the row
-                const pin = row.cells[1].textContent.toLowerCase();
-                const nama = row.cells[2].textContent.toLowerCase();
-                const nip = row.cells[3].textContent.toLowerCase();
-                const nik = row.cells[4].textContent.toLowerCase();
-                const jk = row.cells[5].textContent.toLowerCase();
-                const job_title = row.cells[6].textContent.toLowerCase();
-                const job_level = row.cells[7].textContent.toLowerCase();
-                const bagian = row.cells[8].textContent.toLowerCase();
-                const departemen = row.cells[9].textContent.toLowerCase();
+                const bagianCell = row.cells[9].textContent.toLowerCase(); // Sesuaikan dengan index kolom bagian
+                const matchBagian = currentBagian === 'all' || bagianCell === currentBagian.toLowerCase();
 
-                const status = row.getAttribute('data-status');
-                const checkbox = row.querySelector('input[type="checkbox"]');
-
-                // Check search criteria against all columns
-                const matchSearch = pin.includes(searchInput) ||
-                    nama.includes(searchInput) ||
-                    nip.includes(searchInput) ||
-                    nik.includes(searchInput) ||
-                    jk.includes(searchInput) ||
-                    job_title.includes(searchInput) ||
-                    job_level.includes(searchInput) ||
-                    bagian.includes(searchInput) ||
-                    departemen.includes(searchInput);
+                // Existing search logic
+                const matchSearch = Array.from(row.cells).some(cell =>
+                    cell.textContent.toLowerCase().includes(searchInput)
+                );
 
                 // Check filter criteria
                 const matchFilter = currentFilter === 'all' ||
-                    (currentFilter === 'both' && status === 'both') ||
-                    (currentFilter === 'machine' && status === 'machine') ||
-                    (currentFilter === 'database' && status === 'database');
+                    (currentFilter === 'machine' && row.classList.contains('machine-only'));
 
-                if (matchSearch && matchFilter) {
+                if (matchSearch && matchFilter && matchBagian) {
                     row.style.display = '';
                     row.classList.remove('hidden');
+                    const checkbox = row.querySelector('input[type="checkbox"]');
                     if (checkbox) checkbox.classList.remove('hidden');
                     visibleCount++;
                 } else {
                     row.style.display = 'none';
                     row.classList.add('hidden');
+                    const checkbox = row.querySelector('input[type="checkbox"]');
                     if (checkbox) {
                         checkbox.classList.add('hidden');
                         checkbox.checked = false;
@@ -402,11 +246,12 @@ $resign_count = count($combined_users) - count($non_resign_users);
             updateSelectedCount();
         }
 
+        // Tambahkan fungsi filterByBagian
+        function filterByBagian(bagian) {
+            currentBagian = bagian;
+            searchAndFilter();
+        }
         function setFilter(filter) {
-            // Update active button
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelector(`[onclick="setFilter('${filter}')"]`).classList.add('active');
-
             currentFilter = filter;
             searchAndFilter();
         }
@@ -525,35 +370,38 @@ $resign_count = count($combined_users) - count($non_resign_users);
 
 <body>
     <h2>👥 Data User Fingerprint & Database</h2>
-    <div class="stats-container">
-        <div class="stat-box">
-            <div class="stat-number"><?= $total_users ?></div>
-            <div class="stat-label">Total Karyawan</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-number"><?= $users_both ?></div>
-            <div class="stat-label">Ada di Keduanya</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-number"><?= $users_machine_only ?></div>
-            <div class="stat-label">Hanya di Mesin</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-number"><?= $users_database_only ?></div>
-            <div class="stat-label">Hanya di Database</div>
-        </div>
-        <?php if ($resign_count > 0): ?>
-            <div class="stat-box resign">
-                <div class="stat-number"><?= $resign_count ?></div>
-                <div class="stat-label">User Resign</div>
+    <form method="POST" action="?page=users-detail" onsubmit="return validateForm()" id="absenForm">
+        <div class="main-container">
+            <!-- Stats Section -->
+            <div class="stats-wrapper">
+                <div class="stat-box">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-number"><?= $total_users ?></div>
+                    <div class="stat-label">Total Karyawan</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon">💾</div>
+                    <div class="stat-number"><?= count(array_filter($combined_users, function ($user) {
+                        return $user['in_database'] && !$user['is_resign'];
+                    })) ?></div>
+                    <div class="stat-label">Database</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon">🖥️</div>
+                    <div class="stat-number"><?= $users_machine_only ?></div>
+                    <div class="stat-label">Mesin</div>
+                </div>
+                <?php if ($resign_count > 0): ?>
+                    <div class="stat-box resign">
+                        <div class="stat-icon">🚪</div>
+                        <div class="stat-number"><?= $resign_count ?></div>
+                        <div class="stat-label">Resign</div>
+                    </div>
+                <?php endif; ?>
             </div>
-        <?php endif; ?>
-    </div>
 
-    <div class="form-container">
-        <form method="POST" action="?page=users-detail" onsubmit="return validateForm()" id="absenForm">
-
-            <div class="form-row">
+            <!-- Period Section -->
+            <div class="period-container">
                 <div class="date-container">
                     <div class="d-flex align-items-center gap-3 mb-2">
                         <label>📅 Periode:</label>
@@ -571,113 +419,159 @@ $resign_count = count($combined_users) - count($non_resign_users);
                             <div class="spinner"></div>
                             Detail Absensi <span class="emoji">➡️</span>
                         </button>
-                        <div class="loading-indicator" id="loadingIndicator">
-                            <div class="loading-dots">
-                                <span></span>
-                                <span></span>
-                                <span></span>
-                            </div>
-                            <span class="loading-text">Memproses data...</span>
-                        </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="search-container">
-                <div>
-                    <label>🔍 Cari: </label>
-                    <input type="text" id="searchInput" class="search-input"
-                        placeholder="Ketik PIN, Nama, NIP, atau Bagian..." />
-                </div>
-                <div style="color: #666; font-size: 12px;">
-                    <span id="userCount"><?= count($combined_users) ?></span> user ditampilkan |
-                    <span id="selectedCount">0</span> dipilih
-                </div>
+        <div class="search-container">
+            <div>
+                <label>🔍 Cari: </label>
+                <input type="text" id="searchInput" class="search-input"
+                    placeholder="Ketik PIN, Nama, NIP, atau Bagian..." />
             </div>
-            <div class="select-all">
-                <div class="d-flex align-items-center gap-2" style="justify-content: space-between">
-                    <div class="d-flex align-items-center gap-2">
-                        <label>
-                            <input type="checkbox" onchange="toggleAll(this)">
-                            <strong>Pilih Semua User Aktif (yang terlihat)</strong>
-                        </label>
-                        <div class="small-legend">
-                            <div class="legend-item">
-                                <div class="legend-color legend-machine-only"></div>
-                                <span>Hanya di mesin (bisa ditambahkan)</span>
-                            </div>
-                            <?php if ($resign_count > 0): ?>
-                                <div class="legend-item resign-legend">
-                                    <div class="legend-color legend-resign"></div>
-                                    <span>User Resign</span>
-                                </div>
-                            <?php endif; ?>
+            <div style="color: #666; font-size: 12px;">
+                <span id="userCount"><?= count($combined_users) ?></span> user ditampilkan |
+                <span id="selectedCount">0</span> dipilih
+            </div>
+        </div>
+        <div class="select-all">
+            <div class="d-flex align-items-center gap-2" style="justify-content: space-between">
+                <div class="d-flex align-items-center gap-2">
+                    <label>
+                        <input type="checkbox" onchange="toggleAll(this)">
+                        <strong>Pilih Semua User Aktif (yang terlihat)</strong>
+                    </label>
+                    <div class="small-legend">
+                        <div class="legend-item">
+                            <div class="legend-color legend-machine-only"></div>
+                            <span>Hanya di mesin (bisa ditambahkan)</span>
                         </div>
+                        <?php if ($resign_count > 0): ?>
+                            <div class="legend-item resign-legend">
+                                <div class="legend-color legend-resign"></div>
+                                <span>User Resign</span>
+                            </div>
+                        <?php endif; ?>
                     </div>
-                    <div class="filter-buttons">
-                        <button type="button" class="filter-btn active" onclick="setFilter('all')">Semua</button>
-                        <button type="button" class="filter-btn" onclick="setFilter('machine')">Hanya di Mesin</button>
-                    </div>
+                </div>
+                <!-- Ganti div filter-buttons dengan kode berikut -->
+                <div class="filter-dropdown">
+                    <select class="filter-select" onchange="setFilter(this.value)">
+                        <option value="all">👥 Semua User</option>
+                        <option value="machine">🖥️ Hanya di Mesin</option>
+                    </select>
+                </div>
+                <div class="filter-dropdown">
+                    <select class="filter-select" id="bagianFilter" onchange="filterByBagian(this.value)">
+                        <option value="all">🏢 Semua Bagian</option>
+                        <optgroup label="Produksi">
+                            <option value="Bahan Baku">Bahan Baku</option>
+                            <option value="Cabut">Cabut</option>
+                            <option value="Dry A">Dry A</option>
+                            <option value="Dry B & HCR">Dry B & HCR</option>
+                            <option value="Moulding">Moulding</option>
+                            <option value="HCR Moulding">HCR Moulding</option>
+                            <option value="Moulding Indomie">Moulding Indomie</option>
+                            <option value="Cuci Bersih">Cuci Bersih</option>
+                            <option value="Cuci Kotor">Cuci Kotor</option>
+                            <option value="Rambang">Rambang</option>
+                            <option value="Cutter & Flek">Cutter & Flek</option>
+                            <option value="Packing">Packing</option>
+                            <option value="Grading">Grading</option>
+                            <option value="Final Grading">Final Grading</option>
+                        </optgroup>
+                        <optgroup label="Administrasi">
+                            <option value="Admin">Admin</option>
+                            <option value="Admin Cabut & Bahan Baku">Admin Cabut & Bahan Baku</option>
+                            <option value="Admin Drying & Moulding">Admin Drying & Moulding</option>
+                            <option value="Admin Packing">Admin Packing</option>
+                            <option value="Admin Cabut">Admin Cabut</option>
+                            <option value="Administrasi">Administrasi</option>
+                            <option value="Finance Accounting">Finance Accounting</option>
+                            <option value="Kasir Perusahaan">Kasir Perusahaan</option>
+                        </optgroup>
+                        <optgroup label="Supervisor & Manager">
+                            <option value="Manager Produksi">Manager Produksi</option>
+                            <option value="SPV">SPV</option>
+                            <option value="TL Pre Cleaning">TL Pre Cleaning</option>
+                            <option value="Checker Moulding">Checker Moulding</option>
+                        </optgroup>
+                        <optgroup label="Support">
+                            <option value="Security">Security</option>
+                            <option value="Sanitasi">Sanitasi</option>
+                            <option value="Driver">Driver</option>
+                            <option value="Maintenance">Maintenance</option>
+                            <option value="Maintenance IT">Maintenance IT</option>
+                            <option value="CCP 1">CCP 1</option>
+                            <option value="Prewash">Prewash</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <!-- Ganti button add user yang lama dengan yang baru -->
+                <div class="action-buttons">
                     <button type="submit" name="addUserBtn" value="1" id="addUserBtn" class="btn-secondary"
-                        onclick="return validateAddUsers()" formaction="?page=users-add">
-                        <span class="emoji">👤➕</span> Tambah User ke Database
+                        onclick="return validateAddUsers()" formaction="?page=users-add" disabled>
+                        <span class="emoji">👤</span>
+                        <span class="button-text">Tambah ke Database</span>
+                        <div class="spinner" style="display: none;"></div>
                     </button>
                 </div>
             </div>
+        </div>
 
-            <div class="table-container"></div>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th class="checkbox-col">✓</th>
-                            <th class="pin-col">PIN</th>
-                            <th>Nama (Mesin)</th>
-                            <th>Nama (Database)</th>
-                            <th>NIP</th>
-                            <th>NIK</th>
-                            <th>Gender</th>
-                            <th>Jabatan</th>
-                            <th>Level</th>
-                            <th>Bagian</th>
-                            <th>Departemen</th>
+        <div class="table-container"></div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="checkbox-col">✓</th>
+                        <th class="pin-col">PIN</th>
+                        <th>Nama (Mesin)</th>
+                        <th>Nama (Database)</th>
+                        <th>NIP</th>
+                        <th>NIK</th>
+                        <th>Gender</th>
+                        <th>Jabatan</th>
+                        <th>Level</th>
+                        <th>Bagian</th>
+                        <th>Departemen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($combined_users as $user): ?>
+                        <tr class="user-row <?= (!$user['in_database']) ? 'machine-only' : '' ?> <?= $user['is_resign'] ? 'resign' : '' ?>"
+                            data-status="<?= $user['in_machine'] && $user['in_database'] ? 'both' : ($user['in_machine'] ? 'machine' : 'database') ?>">
+                            <td class="checkbox-col">
+                                <?php if ($user['in_machine'] && !$user['is_resign']): ?>
+                                    <input type="checkbox" name="selected_users[]" value="<?= htmlspecialchars($user['pin']) ?>"
+                                        class="user-checkbox <?= !$user['in_database'] ? 'add-user' : '' ?>">
+                                <?php elseif ($user['is_resign']): ?>
+                                    <input type="checkbox" name="selected_users[]" value="<?= htmlspecialchars($user['pin']) ?>"
+                                        class="user-checkbox" disabled title="User dengan status RESIGN tidak dapat dipilih">
+                                <?php else: ?>
+                                    <span style="color: #ccc;">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="pin-col"><?= htmlspecialchars($user['pin']) ?></td>
+                            <td><?= htmlspecialchars($user['nama_mesin']) ?></td>
+                            <td><?= htmlspecialchars($user['nama_db']) ?><?= $user['is_resign'] ? ' <small>(RESIGN)</small>' : '' ?>
+                            </td>
+                            <td style="<?= $user['is_resign'] ? 'font-weight: bold;' : '' ?>">
+                                <?= htmlspecialchars($user['nip']) ?>
+                            </td>
+                            <td><?= htmlspecialchars($user['nik']) ?></td>
+                            <td><?= htmlspecialchars($user['jk']) ?></td>
+                            <td><?= htmlspecialchars($user['job_title']) ?></td>
+                            <td><?= htmlspecialchars($user['job_level']) ?></td>
+                            <td><?= htmlspecialchars($user['bagian']) ?></td>
+                            <td><?= htmlspecialchars($user['departemen']) ?></td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($combined_users as $user): ?>
-                            <tr class="user-row <?= (!$user['in_database']) ? 'machine-only' : '' ?> <?= $user['is_resign'] ? 'resign' : '' ?>"
-                                data-status="<?= $user['in_machine'] && $user['in_database'] ? 'both' : ($user['in_machine'] ? 'machine' : 'database') ?>">
-                                <td class="checkbox-col">
-                                    <?php if ($user['in_machine'] && !$user['is_resign']): ?>
-                                        <input type="checkbox" name="selected_users[]"
-                                            value="<?= htmlspecialchars($user['pin']) ?>"
-                                            class="user-checkbox <?= !$user['in_database'] ? 'add-user' : '' ?>">
-                                    <?php elseif ($user['is_resign']): ?>
-                                        <input type="checkbox" name="selected_users[]"
-                                            value="<?= htmlspecialchars($user['pin']) ?>" class="user-checkbox" disabled
-                                            title="User dengan status RESIGN tidak dapat dipilih">
-                                    <?php else: ?>
-                                        <span style="color: #ccc;">-</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="pin-col"><?= htmlspecialchars($user['pin']) ?></td>
-                                <td><?= htmlspecialchars($user['nama_mesin']) ?></td>
-                                <td><?= htmlspecialchars($user['nama_db']) ?><?= $user['is_resign'] ? ' <small>(RESIGN)</small>' : '' ?>
-                                </td>
-                                <td style="<?= $user['is_resign'] ? 'font-weight: bold;' : '' ?>">
-                                    <?= htmlspecialchars($user['nip']) ?></td>
-                                <td><?= htmlspecialchars($user['nik']) ?></td>
-                                <td><?= htmlspecialchars($user['jk']) ?></td>
-                                <td><?= htmlspecialchars($user['job_title']) ?></td>
-                                <td><?= htmlspecialchars($user['job_level']) ?></td>
-                                <td><?= htmlspecialchars($user['bagian']) ?></td>
-                                <td><?= htmlspecialchars($user['departemen']) ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </form>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </form>
     </div>
 </body>
 
