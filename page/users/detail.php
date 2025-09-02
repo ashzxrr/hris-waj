@@ -8,36 +8,36 @@ require __DIR__ . '/../../includes/functions.php';
 // Handle export CSV
 if (isset($_POST['exportBtn'])) {
     ob_start(); // Start output buffering
-    
+
     try {
         if (empty($_POST['selected_users']) || empty($_POST['tanggal_dari']) || empty($_POST['tanggal_sampai'])) {
             throw new Exception('Data tidak lengkap untuk export');
         }
-        
+
         $selected_users = $_POST['selected_users'];
         $tanggal_dari = $_POST['tanggal_dari'];
         $tanggal_sampai = $_POST['tanggal_sampai'];
-        
+
         // Ambil data user dan absensi
         $users = getUsers($ip, $port, $key);
         $all_attendance = getAttendanceRange($ip, $port, $key, $tanggal_dari, $tanggal_sampai, $users);
-        
+
         // Filter data absensi
         $filtered_attendance = array_filter($all_attendance, function ($record) use ($selected_users) {
             return in_array($record['pin'], $selected_users);
         });
-        
+
         // Tambahkan data dari database
         $pins = array_map('intval', $selected_users);
         $pin_list = implode(',', $pins);
         $nip_data = [];
-        
+
         if (!empty($pins)) {
             $result = mysqli_query($mysqli, "SELECT pin, nip, bagian, nik, jk, job_title, job_level, bagian, departemen FROM users WHERE pin IN ($pin_list)");
             if (!$result) {
                 throw new Exception('Error querying database: ' . mysqli_error($mysqli));
             }
-            
+
             while ($row = mysqli_fetch_assoc($result)) {
                 $nip_data[$row['pin']] = [
                     'nip' => $row['nip'],
@@ -50,7 +50,7 @@ if (isset($_POST['exportBtn'])) {
                 ];
             }
         }
-        
+
         // Tambahkan data database ke setiap record
         foreach ($filtered_attendance as &$record) {
             if (isset($nip_data[$record['pin']])) {
@@ -58,18 +58,18 @@ if (isset($_POST['exportBtn'])) {
             }
         }
         unset($record);
-        
+
         ob_end_clean(); // Clear buffer before export
-        
+
         // Generate filename
         $filename = sprintf(
             'absensi_%s_to_%s.csv',
             date('Y-m-d', strtotime($tanggal_dari)),
             date('Y-m-d', strtotime($tanggal_sampai))
         );
-        
+
         exportToCsv($filtered_attendance, $filename);
-        
+
     } catch (Exception $e) {
         ob_end_clean();
         header('HTTP/1.1 500 Internal Server Error');
@@ -193,8 +193,17 @@ $stats = getAttendanceStats($filtered_attendance);
             margin-bottom: 18px;
             flex-wrap: wrap;
         }
-        .status-in { color: #28a745; font-weight: bold; }
-        .status-out { color: #dc3545; font-weight: bold; }
+
+        .status-in {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .status-out {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
         .stat-box {
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), var(--card-bg));
             border: 1px solid rgba(26, 115, 232, 0.06);
@@ -407,7 +416,7 @@ $stats = getAttendanceStats($filtered_attendance);
 
     <h2>📊 Detail Absensi</h2>
 
-     <div class="filter-info">
+    <div class="filter-info">
         <strong>Filter:</strong>
         📅 <?= formatTanggalIndonesia($tanggal_dari) ?>
         <?php if ($tanggal_dari !== $tanggal_sampai): ?>
@@ -416,7 +425,7 @@ $stats = getAttendanceStats($filtered_attendance);
         | 👥 <?= count($selected_users) ?> User Dipilih
     </div>
     <!-- Statistik -->
-<div class="stats-container">
+    <div class="stats-container">
         <div class="stat-box">
             <div class="stat-number"><?= $stats['total'] ?></div>
             <div class="stat-sub">Total Record</div>
@@ -454,7 +463,7 @@ $stats = getAttendanceStats($filtered_attendance);
             </form>
         <?php endif; ?>
     </div>
-     <!-- Tabel Data Absensi (scrollable) -->
+    <!-- Tabel Data Absensi (scrollable) -->
     <div class="table-container">
         <table>
             <thead>
@@ -487,49 +496,83 @@ $stats = getAttendanceStats($filtered_attendance);
                 foreach ($selected_users as $pin) {
                     foreach ($periode as $tgl) {
                         $tanggal_str = $tgl->format('Y-m-d');
-                        $found = array_filter($filtered_attendance, function ($item) use ($pin, $tanggal_str) {
+                        $records_on_date = array_filter($filtered_attendance, function ($item) use ($pin, $tanggal_str) {
                             return $item['pin'] == $pin && date('Y-m-d', strtotime($item['datetime'])) == $tanggal_str;
                         });
 
-                        if (!empty($found)) {
-                            foreach ($found as $record) {
-                                $tanggal = date('d/m/Y', strtotime($record['datetime']));
-                                $hari = getNamaHari($record['datetime']);
+                        if (!empty($records_on_date)) {
+                            // Pisahkan record IN dan OUT
+                            $in_record = null;
+                            $out_record = null;
+
+                            foreach ($records_on_date as $record) {
+                                if ($record['status'] == 'IN') {
+                                    $in_record = $record;
+                                } else {
+                                    $out_record = $record;
+                                }
+                            }
+
+                            // Tampilkan IN dulu
+                            if ($in_record) {
+                                $tanggal = date('d/m/Y', strtotime($in_record['datetime']));
+                                $hari = getNamaHari($in_record['datetime']);
                                 echo "<tr>
-                                        <td>" . $no++ . "</td>
-                                        <td style='display: none;'>{$record['pin']}</td>
-                                        <td>{$record['nip']}</td>
-                                        <td>{$record['nama']}</td>
-                                        <td>{$record['nik']}</td>
-                                        <td>{$record['jk']}</td>
-                                        <td>{$record['job_title']}</td>
-                                        <td>{$record['job_level']}</td>
-                                        <td>{$record['bagian']}</td>
-                                        <td>{$record['departemen']}</td>
-                                        <td>{$hari}, {$tanggal}</td>
-                                        <td>" . date('H:i:s', strtotime($record['datetime'])) . "</td>
-                                        <td><span class='" . ($record['status'] == 'IN' ? 'status-in' : 'status-out') . "'>{$record['status']}</span></td>
-                                    </tr>";
+                    <td>" . $no++ . "</td>
+                    <td style='display: none;'>{$in_record['pin']}</td>
+                    <td>{$in_record['nip']}</td>
+                    <td>{$in_record['nama']}</td>
+                    <td>{$in_record['nik']}</td>
+                    <td>{$in_record['jk']}</td>
+                    <td>{$in_record['job_title']}</td>
+                    <td>{$in_record['job_level']}</td>
+                    <td>{$in_record['bagian']}</td>
+                    <td>{$in_record['departemen']}</td>
+                    <td>{$hari}, {$tanggal}</td>
+                    <td>" . date('H:i:s', strtotime($in_record['datetime'])) . "</td>
+                    <td><span class='status-in'>{$in_record['status']}</span></td>
+                </tr>";
+                            }
+
+                            // Kemudian tampilkan OUT
+                            if ($out_record) {
+                                $tanggal = date('d/m/Y', strtotime($out_record['datetime']));
+                                $hari = getNamaHari($out_record['datetime']);
+                                echo "<tr>
+                    <td>" . $no++ . "</td>
+                    <td style='display: none;'>{$out_record['pin']}</td>
+                    <td>{$out_record['nip']}</td>
+                    <td>{$out_record['nama']}</td>
+                    <td>{$out_record['nik']}</td>
+                    <td>{$out_record['jk']}</td>
+                    <td>{$out_record['job_title']}</td>
+                    <td>{$out_record['job_level']}</td>
+                    <td>{$out_record['bagian']}</td>
+                    <td>{$out_record['departemen']}</td>
+                    <td>{$hari}, {$tanggal}</td>
+                    <td>" . date('H:i:s', strtotime($out_record['datetime'])) . "</td>
+                    <td><span class='status-out'>{$out_record['status']}</span></td>
+                </tr>";
                             }
                         } else {
-                            // Update bagian record yang tidak ada absensi
+                            // Tampilkan baris "Tidak Absen" seperti sebelumnya
                             $tanggal = date('d/m/Y', strtotime($tanggal_str));
                             $hari = getNamaHari($tanggal_str);
                             echo "<tr style='background:#fff8e1;'>
-                                <td>" . $no++ . "</td>
-                                <td style='display: none;'>{$pin}</td>
-                                <td>" . ($nip_data[$pin]['nip'] ?? '-') . "</td>
-                                <td>" . ($users[$pin] ?? '-') . "</td>
-                                <td>" . ($nip_data[$pin]['nik'] ?? '-') . "</td>
-                                <td>" . ($nip_data[$pin]['jk'] ?? '-') . "</td>
-                                <td>" . ($nip_data[$pin]['job_title'] ?? '-') . "</td>
-                                <td>" . ($nip_data[$pin]['job_level'] ?? '-') . "</td>
-                                <td>" . ($nip_data[$pin]['bagian'] ?? '-') . "</td>
-                                <td>" . ($nip_data[$pin]['departemen'] ?? '-') . "</td>
-                                <td>{$hari}, {$tanggal}</td>
-                                <td>-</td>
-                                <td class='status-none'>Tidak Absen</td>
-                            </tr>";
+                <td>" . $no++ . "</td>
+                <td style='display: none;'>{$pin}</td>
+                <td>" . ($nip_data[$pin]['nip'] ?? '-') . "</td>
+                <td>" . ($users[$pin] ?? '-') . "</td>
+                <td>" . ($nip_data[$pin]['nik'] ?? '-') . "</td>
+                <td>" . ($nip_data[$pin]['jk'] ?? '-') . "</td>
+                <td>" . ($nip_data[$pin]['job_title'] ?? '-') . "</td>
+                <td>" . ($nip_data[$pin]['job_level'] ?? '-') . "</td>
+                <td>" . ($nip_data[$pin]['bagian'] ?? '-') . "</td>
+                <td>" . ($nip_data[$pin]['departemen'] ?? '-') . "</td>
+                <td>{$hari}, {$tanggal}</td>
+                <td>-</td>
+                <td class='status-none'>Tidak Absen</td>
+            </tr>";
                         }
                     }
                 }
