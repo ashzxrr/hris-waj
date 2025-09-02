@@ -258,5 +258,5 @@ try {
 
 
 <?php
-require __DIR__ . '/includes/footer.php';
+require __DIR__ . '/../../includes/footer.php';
 ?>
