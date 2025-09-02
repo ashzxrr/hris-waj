@@ -1,7 +1,7 @@
 <?php
-require __DIR__ . '/includes/config.php';
-require __DIR__ . '/includes/functions.php';
-require __DIR__ . '/includes/header.php';
+require __DIR__ . '/../../includes/config.php';
+require __DIR__ . '/../../includes/functions.php';
+require __DIR__ . '/../../includes/header.php';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_users'])) {
@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_users'])) {
     if ($success_count > 0) {
         echo "<script>
             alert('✅ Berhasil menambahkan $success_count user ke database!');
-            window.location.href = 'halaman-users-merge.php';
+            window.location.href = '?page=users';
         </script>";
         exit;
     } else {
@@ -81,7 +81,7 @@ $selected_users = [];
 if (empty($_POST)) {
     echo "<script>
         alert('⚠️ Tidak ada data yang diterima! Silakan kembali dan pilih user terlebih dahulu.');
-        window.location.href = 'halaman-users-merge.php';
+        window.location.href = '?page=users.php';
     </script>";
     exit;
 }
@@ -103,7 +103,7 @@ if (isset($_POST['user_data']) && is_array($_POST['user_data'])) {
     } catch (Exception $e) {
         echo "<script>
             alert('⚠️ Error mengambil data dari mesin fingerprint: " . addslashes($e->getMessage()) . "');
-            window.location.href = 'index.php';
+            window.location.href = '?page=users';
         </script>";
         exit;
     }
@@ -112,7 +112,7 @@ if (isset($_POST['user_data']) && is_array($_POST['user_data'])) {
 if (empty($selected_users)) {
     echo "<script>
         alert('⚠️ Tidak ada data user yang valid!');
-        window.location.href = 'index.php';
+        window.location.href = '?page=users';
     </script>";
     exit;
 }
@@ -387,7 +387,7 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
 
             <form method="POST" id="userForm">
                 <div class="button-container">
-                    <a href="halaman-users-merge.php" class="btn btn-secondary">
+                    <a href="?page=users" class="btn btn-secondary">
                         <span>⬅️</span> Kembali
                     </a>
                     <button class="btn btn-secondary" type="button" onclick="location.reload();">

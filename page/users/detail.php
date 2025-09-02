@@ -2,8 +2,8 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require __DIR__ . '/includes/config.php';
-require __DIR__ . '/includes/functions.php';
+require __DIR__ . '/../../includes/config.php';
+require __DIR__ . '/../../includes/functions.php';
 
 // Handle export CSV
 if (isset($_POST['exportBtn'])) {
@@ -78,14 +78,14 @@ if (isset($_POST['exportBtn'])) {
     }
 }
 
-require __DIR__ . '/includes/header.php';
+require __DIR__ . '/../../includes/header.php';
 
 // Debug untuk melihat data yang diterima
 error_log('POST Data: ' . print_r($_POST, true));
 
 // Cek apakah form sudah disubmit
 if (!isset($_POST['detailBtn']) || empty($_POST['selected_users']) || empty($_POST['tanggal_dari']) || empty($_POST['tanggal_sampai'])) {
-    header('Location: halaman-users-merge.php');
+    header('Location: ?page=users');
     exit;
 }
 
@@ -437,7 +437,7 @@ $stats = getAttendanceStats($filtered_attendance);
 
     <!-- Action Buttons -->
     <div style="margin-bottom: 15px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <a href="halaman-users-merge.php" class="btn btn-secondary">⬅️ Kembali</a>
+        <a href="?page=users" class="btn btn-secondary">⬅️ Kembali</a>
 
         <?php if (!empty($filtered_attendance)): ?>
             <form method="POST" style="display: inline;">

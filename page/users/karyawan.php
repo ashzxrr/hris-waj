@@ -1,7 +1,7 @@
 <?php
-require __DIR__ . '/includes/config.php';
-require __DIR__ . '/includes/functions.php';
-require __DIR__ . '/includes/header.php';
+require __DIR__ . '/../../includes/config.php';
+require __DIR__ . '/../../includes/functions.php';
+require __DIR__ . '/../../includes/header.php';
 
 // Ambil data user dari mesin fingerprint
 $users = getUsers($ip, $port, $key);
@@ -69,7 +69,7 @@ uksort($combined_users, function ($a, $b) {
 });
 
 // Hitung statistik (exclude resign users)
-$non_resign_users = array_filter($combined_users, function($user) {
+$non_resign_users = array_filter($combined_users, function ($user) {
     return !$user['is_resign'];
 });
 
@@ -101,21 +101,21 @@ $resign_count = count($combined_users) - count($non_resign_users);
             background-color: #ffe6e6 !important;
             color: #cc0000;
         }
-        
+
         .user-row.resign:hover {
             background-color: #ffcccc !important;
         }
-        
+
         .user-row.resign td {
             border-color: #ffb3b3;
         }
-        
+
         /* Style untuk checkbox yang disabled pada user resign */
         .user-row.resign input[type="checkbox"] {
             opacity: 0.5;
             cursor: not-allowed;
         }
-        
+
         /* Update legend untuk menambah info resign */
         .resign-legend {
             display: flex;
@@ -124,7 +124,7 @@ $resign_count = count($combined_users) - count($non_resign_users);
             font-size: 11px;
             color: #cc0000;
         }
-        
+
         .legend-color.legend-resign {
             width: 12px;
             height: 12px;
@@ -132,7 +132,7 @@ $resign_count = count($combined_users) - count($non_resign_users);
             border: 1px solid #cc0000;
             border-radius: 2px;
         }
-        
+
         .stats-container .stat-box.resign {
             background: linear-gradient(135deg, #ffe6e6, #ffcccc);
             color: #cc0000;
@@ -161,31 +161,82 @@ $resign_count = count($combined_users) - count($non_resign_users);
         }
 
         .select-all {
-    background-color: #f8fafc;
-    padding: 10px 15px;
-    border-radius: 5px;
-    margin-bottom: 15px;
-}
+            background-color: #f8fafc;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
 
-.select-all .d-flex {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+        .select-all .d-flex {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-.small-legend {
-    display: flex;
-    gap: 15px;
-    margin-left: 15px;
-}
+        .small-legend {
+            display: flex;
+            gap: 15px;
+            margin-left: 15px;
+        }
 
-/* Update button style untuk konsistensi dengan layout baru */
-.btn-secondary {
-    padding: 6px 15px;
-    height: 32px;
-    font-size: 0.85rem;
-    white-space: nowrap;
-}
+        /* Update button style untuk konsistensi dengan layout baru */
+        .btn-secondary {
+            padding: 6px 15px;
+            height: 32px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        /* Style untuk filter buttons yang selaras */
+        .filter-buttons {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .filter-btn {
+            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+            color: #475569;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #45caff, #5c9dff);
+            color: white;
+            box-shadow: 0 2px 8px rgba(69, 202, 255, 0.3);
+        }
+
+        .filter-btn.active:hover {
+            background: linear-gradient(135deg, #5c9dff, #45caff);
+        }
+
+        .filter-btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary,
+        .btn-secondary,
+        .date-btn,
+        .filter-btn {
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+        }
     </style>
     <script>
         let currentFilter = 'all';
@@ -242,7 +293,7 @@ $resign_count = count($combined_users) - count($non_resign_users);
 
             // Buat hidden inputs untuk data user yang dipilih
             const form = document.getElementById('absenForm');
-            
+
             // Hapus hidden inputs yang lama jika ada
             const oldInputs = form.querySelectorAll('input[name^="user_data"]');
             oldInputs.forEach(input => input.remove());
@@ -252,14 +303,14 @@ $resign_count = count($combined_users) - count($non_resign_users);
                 const row = checkbox.closest('tr');
                 const pin = checkbox.value;
                 const namaMesin = row.cells[2].textContent.trim();
-                
+
                 // Buat hidden inputs untuk pin dan nama
                 const pinInput = document.createElement('input');
                 pinInput.type = 'hidden';
                 pinInput.name = `user_data[${index}][pin]`;
                 pinInput.value = pin;
                 form.appendChild(pinInput);
-                
+
                 const namaInput = document.createElement('input');
                 namaInput.type = 'hidden';
                 namaInput.name = `user_data[${index}][nama]`;
@@ -267,7 +318,7 @@ $resign_count = count($combined_users) - count($non_resign_users);
                 form.appendChild(namaInput);
             });
         }
-        
+
         function showLoading() {
             const submitBtn = document.getElementById('submitBtn');
             const loadingText = document.getElementById('loadingText');
@@ -381,7 +432,7 @@ $resign_count = count($combined_users) - count($non_resign_users);
             if (selectedMachineOnly.length > 0) {
                 addUserBtn.disabled = false;
                 addUserBtn.innerHTML = `<span class="emoji">👤➕</span> Tambah ${selectedMachineOnly.length} User ke Database`;
-                
+
                 // Highlight selected machine-only rows
                 document.querySelectorAll('.machine-only').forEach(row => {
                     const checkbox = row.querySelector('input[name="selected_users[]"]');
@@ -394,7 +445,7 @@ $resign_count = count($combined_users) - count($non_resign_users);
             } else {
                 addUserBtn.disabled = true;
                 addUserBtn.innerHTML = '<span class="emoji">👤➕</span> Tambah User ke Database';
-                
+
                 // Remove all highlights
                 document.querySelectorAll('.machine-only-highlight').forEach(row => {
                     row.classList.remove('machine-only-highlight');
@@ -477,7 +528,7 @@ $resign_count = count($combined_users) - count($non_resign_users);
     <div class="stats-container">
         <div class="stat-box">
             <div class="stat-number"><?= $total_users ?></div>
-            <div class="stat-label">Total User Aktif</div>
+            <div class="stat-label">Total Karyawan</div>
         </div>
         <div class="stat-box">
             <div class="stat-number"><?= $users_both ?></div>
@@ -492,15 +543,15 @@ $resign_count = count($combined_users) - count($non_resign_users);
             <div class="stat-label">Hanya di Database</div>
         </div>
         <?php if ($resign_count > 0): ?>
-        <div class="stat-box resign">
-            <div class="stat-number"><?= $resign_count ?></div>
-            <div class="stat-label">User Resign</div>
-        </div>
+            <div class="stat-box resign">
+                <div class="stat-number"><?= $resign_count ?></div>
+                <div class="stat-label">User Resign</div>
+            </div>
         <?php endif; ?>
     </div>
 
     <div class="form-container">
-        <form method="POST" action="detail-fix.php" onsubmit="return validateForm()" id="absenForm">
+        <form method="POST" action="?page=users-detail" onsubmit="return validateForm()" id="absenForm">
 
             <div class="form-row">
                 <div class="date-container">
@@ -543,33 +594,37 @@ $resign_count = count($combined_users) - count($non_resign_users);
                     <span id="selectedCount">0</span> dipilih
                 </div>
             </div>
-<div class="select-all">
-    <div class="d-flex align-items-center gap-2" style="justify-content: space-between">
-        <div class="d-flex align-items-center gap-2">
-            <label>
-                <input type="checkbox" onchange="toggleAll(this)">
-                <strong>Pilih Semua User Aktif (yang terlihat)</strong>
-            </label>
-            <div class="small-legend">
-                <div class="legend-item">
-                    <div class="legend-color legend-machine-only"></div>
-                    <span>Hanya di mesin (bisa ditambahkan)</span>
+            <div class="select-all">
+                <div class="d-flex align-items-center gap-2" style="justify-content: space-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <label>
+                            <input type="checkbox" onchange="toggleAll(this)">
+                            <strong>Pilih Semua User Aktif (yang terlihat)</strong>
+                        </label>
+                        <div class="small-legend">
+                            <div class="legend-item">
+                                <div class="legend-color legend-machine-only"></div>
+                                <span>Hanya di mesin (bisa ditambahkan)</span>
+                            </div>
+                            <?php if ($resign_count > 0): ?>
+                                <div class="legend-item resign-legend">
+                                    <div class="legend-color legend-resign"></div>
+                                    <span>User Resign</span>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="filter-buttons">
+                        <button type="button" class="filter-btn active" onclick="setFilter('all')">Semua</button>
+                        <button type="button" class="filter-btn" onclick="setFilter('machine')">Hanya di Mesin</button>
+                    </div>
+                    <button type="submit" name="addUserBtn" value="1" id="addUserBtn" class="btn-secondary"
+                        onclick="return validateAddUsers()" formaction="?page=users-add">
+                        <span class="emoji">👤➕</span> Tambah User ke Database
+                    </button>
                 </div>
-                <?php if ($resign_count > 0): ?>
-                <div class="legend-item resign-legend">
-                    <div class="legend-color legend-resign"></div>
-                    <span>User Resign</span>
-                </div>
-                <?php endif; ?>
             </div>
-        </div>
-        <button type="submit" name="addUserBtn" value="1" id="addUserBtn" class="btn-secondary" 
-                onclick="return validateAddUsers()" formaction="form-add-user.php">
-            <span class="emoji">👤➕</span> Tambah User ke Database
-        </button>
-    </div>
-</div>
-            
+
             <div class="table-container"></div>
             <div class="table-container">
                 <table>
@@ -595,11 +650,11 @@ $resign_count = count($combined_users) - count($non_resign_users);
                                 <td class="checkbox-col">
                                     <?php if ($user['in_machine'] && !$user['is_resign']): ?>
                                         <input type="checkbox" name="selected_users[]"
-                                            value="<?= htmlspecialchars($user['pin']) ?>" 
+                                            value="<?= htmlspecialchars($user['pin']) ?>"
                                             class="user-checkbox <?= !$user['in_database'] ? 'add-user' : '' ?>">
                                     <?php elseif ($user['is_resign']): ?>
                                         <input type="checkbox" name="selected_users[]"
-                                            value="<?= htmlspecialchars($user['pin']) ?>" class="user-checkbox" disabled 
+                                            value="<?= htmlspecialchars($user['pin']) ?>" class="user-checkbox" disabled
                                             title="User dengan status RESIGN tidak dapat dipilih">
                                     <?php else: ?>
                                         <span style="color: #ccc;">-</span>
@@ -607,8 +662,10 @@ $resign_count = count($combined_users) - count($non_resign_users);
                                 </td>
                                 <td class="pin-col"><?= htmlspecialchars($user['pin']) ?></td>
                                 <td><?= htmlspecialchars($user['nama_mesin']) ?></td>
-                                <td><?= htmlspecialchars($user['nama_db']) ?><?= $user['is_resign'] ? ' <small>(RESIGN)</small>' : '' ?></td>
-                                <td style="<?= $user['is_resign'] ? 'font-weight: bold;' : '' ?>"><?= htmlspecialchars($user['nip']) ?></td>
+                                <td><?= htmlspecialchars($user['nama_db']) ?><?= $user['is_resign'] ? ' <small>(RESIGN)</small>' : '' ?>
+                                </td>
+                                <td style="<?= $user['is_resign'] ? 'font-weight: bold;' : '' ?>">
+                                    <?= htmlspecialchars($user['nip']) ?></td>
                                 <td><?= htmlspecialchars($user['nik']) ?></td>
                                 <td><?= htmlspecialchars($user['jk']) ?></td>
                                 <td><?= htmlspecialchars($user['job_title']) ?></td>

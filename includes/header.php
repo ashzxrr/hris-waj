@@ -210,7 +210,7 @@ if (session_status() === PHP_SESSION_NONE) {
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container">
-        <a class="navbar-brand" href="home.php  ">
+        <a class="navbar-brand" href="?page=dash">
             <img src="images/logo.png" alt="Logo" class="navbar-logo">
             HRIS
         </a>
@@ -221,17 +221,17 @@ if (session_status() === PHP_SESSION_NONE) {
             <!-- Right Navigation -->
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link" href="home.php">Home</a>
+                    <a class="nav-link" href="?page=dash">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="halaman-users-merge.php">Users</a>
+                    <a class="nav-link" href="?page=users">Users</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="about.php">About</a>
+                    <a class="nav-link" href="?page=">About</a>
                 </li>
                 <?php if (isset($_SESSION['user_id'])): ?>
                 <li class="nav-item">
-                    <a href="logout.php" class="nav-link btn-logout" 
+                    <a href="router.php?page=logout" class="nav-link btn-logout" 
                        onclick="return confirm('Apakah Anda yakin ingin keluar?')">
                         <i class="fas fa-sign-out-alt"></i>Logout
                     </a>

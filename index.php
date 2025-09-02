@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 require __DIR__ . '/includes/config.php';
 
@@ -7,7 +9,7 @@ $error = '';
 $username = '';
 
 if (isset($_SESSION['user_id'])) {
-    header('Location: home.php');
+    header('Location: router.php?page=dash');
     exit();
 }
 
@@ -27,21 +29,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($result && $result->num_rows === 1) {
                 $user = $result->fetch_assoc();
 
-                // Pastikan akun aktif (sesuaikan value 'active' bila beda)
                 if (isset($user['status']) && strtolower($user['status']) !== 'active') {
                     $error = 'Akun tidak aktif. Hubungi administrator.';
                 } else {
                     $hashed = $user['password'];
 
-                    // Jika password di-hash gunakan password_verify, jika plain text gunakan perbandingan langsung
                     if ((function_exists('password_verify') && password_verify($password, $hashed)) || $password === $hashed) {
-                        // login sukses
                         $_SESSION['user_id'] = (int) $user['id'];
                         $_SESSION['username'] = $user['username'];
                         $_SESSION['level'] = $user['level'];
                         $_SESSION['login_time'] = time();
 
-                        header('Location: home.php');
+                        header('Location: router.php?page=dash');
                         exit();
                     } else {
                         $error = 'Username atau password salah.';
@@ -57,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="id">

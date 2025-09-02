@@ -1,15 +1,17 @@
 <?php
-session_start();
-require __DIR__ . '/includes/config.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require __DIR__ . '/../../includes/config.php';
 
 // Proteksi: redirect ke login jika belum login
 if (!isset($_SESSION['user_id'])) {
-    header('Location: index.php');
+    header('Location: router.php?page=login');
     exit();
 }
 
 // sekarang boleh include header (yang berisi markup HTML)
-require __DIR__ . '/includes/header.php';
+require __DIR__ . '/../../includes/header.php';
 
 // Query untuk mengambil data statistik
 $stats = [
@@ -196,7 +198,7 @@ try {
                 
                 <!-- Card 1 -->
                 <div class="col-md-3 col-sm-6 mb-4">
-                    <a href="halaman-users-merge.php" class="text-decoration-none">
+                    <a href="?page=users" class="text-decoration-none">
                     <div class="card hover-card">
                         <div class="card-body">
                             <i class="fa-solid fa-users card-icon"></i>
@@ -210,7 +212,7 @@ try {
                 </div>
 
                 <div class="col-md-3 col-sm-6 mb-4">
-                    <a href="users-payroll.php" class="text-decoration-none">
+                    <a href="?page=payroll" class="text-decoration-none">
                     <div class="card hover-card">
                         <div class="card-body">
                             <i class="fa-solid fa-money-bill-wave text-success"></i>
