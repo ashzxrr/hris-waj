@@ -592,3 +592,68 @@
     background-color: #ffcdd2 !important;  /* Slightly darker red on hover */
 }
 
+.top-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.stats-container {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.date-container {
+    min-width: 300px;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.stat-box {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px;
+}
+
+/* Tambahkan CSS berikut */
+.main-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    flex: 0 0 auto;
+    width: 300px;
+}
+
+.stat-box {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.form-row {
+    flex: 1;
+}
+
+.date-container {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.1);
+}
