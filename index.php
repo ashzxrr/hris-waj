@@ -206,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <?php if (isset($_SESSION['login_warning'])): ?>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             Swal.fire({
                 icon: 'warning',
                 title: 'Peringatan!',
@@ -216,10 +216,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         });
     </script>
-    <?php 
-        unset($_SESSION['login_warning']); 
-    endif; 
-    ?>
+    <?php
+    unset($_SESSION['login_warning']);
+endif;
+?>
+
 <body>
     <!-- Add Loading Screen HTML -->
     <div class="loading-screen">
