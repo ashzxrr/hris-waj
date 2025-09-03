@@ -201,8 +201,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-
+</head>
+<?php if (isset($_SESSION['login_warning'])): ?>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan!',
+                text: '<?php echo $_SESSION['login_warning']; ?>',
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'OK'
+            });
+        });
+    </script>
+    <?php 
+        unset($_SESSION['login_warning']); 
+    endif; 
+    ?>
 <body>
     <!-- Add Loading Screen HTML -->
     <div class="loading-screen">

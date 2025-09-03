@@ -1,4 +1,16 @@
 <?php
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+
+}
+// Proteksi: redirect ke login jika belum login
+if (!isset($_SESSION['user_id'])) {
+    // Set flash message in session
+    $_SESSION['login_warning'] = "Anda harus login terlebih dahulu!";
+    header('Location: router.php?page=login');
+    exit();
+}
 require __DIR__ . '/../../includes/config.php';
 require __DIR__ . '/../../includes/functions.php';
 require __DIR__ . '/../../includes/header.php';
@@ -95,9 +107,21 @@ $resign_count = count($combined_users) - count($non_resign_users);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="stylesheet" href="assets/css/style-user.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <title>Data User Fingerprint & Database</title>
     <script>
         let currentFilter = 'all';
+        document.addEventListener('DOMContentLoaded', function () {
+            <?php if (isset($_SESSION['login_warning'])): ?>
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan!',
+                    text: '<?php echo $_SESSION['login_warning']; ?>',
+                    confirmButtonText: 'OK'
+                });
+                <?php unset($_SESSION['login_warning']); ?>
+            <?php endif; ?>
+        });
         function toggleAll(source) {
             const checkboxes = document.querySelectorAll('input[name="selected_users[]"]:not(.hidden):not(:disabled)');
             checkboxes.forEach(checkbox => checkbox.checked = source.checked);

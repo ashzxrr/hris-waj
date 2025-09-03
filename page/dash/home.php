@@ -6,6 +6,8 @@ require __DIR__ . '/../../includes/config.php';
 
 // Proteksi: redirect ke login jika belum login
 if (!isset($_SESSION['user_id'])) {
+    // Set flash message in session
+    $_SESSION['login_warning'] = "Anda harus login terlebih dahulu!";
     header('Location: router.php?page=login');
     exit();
 }

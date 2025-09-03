@@ -1,4 +1,15 @@
 <?php
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['user_id'])) {
+    // Set flash message in session
+    $_SESSION['login_warning'] = "Anda harus login terlebih dahulu!";
+    header('Location: router.php?page=login');
+    exit();
+}
 require __DIR__ . '/../../includes/config.php';
 require __DIR__ . '/../../includes/functions.php';
 require __DIR__ . '/../../includes/header.php';
