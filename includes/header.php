@@ -203,7 +203,7 @@ if (session_status() === PHP_SESSION_NONE) {
     .page-loader.fade-out {
         opacity: 0;
     }
-</style>
+</style>    
 </head>
 <body>
  <div class="page-loader"></div>
@@ -225,6 +225,9 @@ if (session_status() === PHP_SESSION_NONE) {
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="?page=users">Users</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="?page=payroll">Payroll</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="?page=">About</a>
