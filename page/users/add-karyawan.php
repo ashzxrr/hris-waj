@@ -371,33 +371,209 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
         .form-grid {
             grid-template-columns: 1fr;
         }
+    }.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Card Styles */
+.card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+/* Info Alert Styles */
+.alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+}
+
+.alert-info {
+    background-color: #e1f5fe;
+    border: 1px solid #b3e5fc;
+    color: #0277bd;
+}
+
+/* Form Styles */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    color: #4b5563;
+    font-weight: 500;
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: border-color 0.15s ease-in-out;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.form-control:disabled {
+    background-color: #f3f4f6;
+}
+
+/* Button Styles */
+.btn-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #2563eb;
+}
+
+.btn-secondary {
+    background-color: #6b7280;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #4b5563;
+}
+
+/* Required Field Indicator */
+.required::after {
+    content: " *";
+    color: #ef4444;
+}
+
+/* Card Grid */
+.user-cards {
+    display: grid;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.user-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.user-card-header {
+    background: #f8fafc;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    font-weight: 500;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-card-body {
+    padding: 16px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
     }
+    
+    .btn-toolbar {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
 </style>
 </head>
 
 <body>
     <h2>👤 Tambah User ke Database</h2>
 
-    <div class="content">
-        <div class="info-box">
-            <strong>📋 Informasi:</strong> 
-            Lengkapi data untuk <?= count($selected_users) ?> user yang akan ditambahkan ke database.
-            Field bertanda <span style="color: #dc3545;">*</span> wajib diisi.
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">👤 Tambah User ke Database</h2>
         </div>
+        
+        <div class="card-body">
+            <div class="alert alert-info">
+                <strong>📋 Informasi:</strong> 
+                Lengkapi data untuk <?= count($selected_users) ?> user yang akan ditambahkan ke database.
+                Field bertanda <span style="color: #ef4444;">*</span> wajib diisi.
+            </div>
 
             <form method="POST" id="userForm">
-                <div class="button-container">
+                <div class="btn-toolbar">
                     <a href="?page=users" class="btn btn-secondary">
                         <span>⬅️</span> Kembali
                     </a>
-                    <button class="btn btn-secondary" type="button" onclick="location.reload();">
-                        <span>🔄</span> Muat Ulang Halaman
-
+                    <button type="button" class="btn btn-secondary" onclick="location.reload();">
+                        <span>🔄</span> Muat Ulang
                     </button>
-                    <button type="submit" name="save_users" class="btn btn-primary" id="saveBtn">
+                    <button type="submit" name="save_users" class="btn btn-primary">
                         <span>💾</span> Simpan <?= count($selected_users) ?> User
                     </button>
                 </div>
+
                 <div class="user-cards">
                     <?php foreach ($selected_users as $index => $user): ?>
                         <div class="user-card">
@@ -498,6 +674,7 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
             </form>
         </div>
     </div>
+    </div>  
 
     <script>
         document.getElementById('userForm').addEventListener('submit', function (e) {
