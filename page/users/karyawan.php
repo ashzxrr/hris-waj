@@ -560,6 +560,7 @@ $resign_count = count($combined_users) - count($non_resign_users);
                         <th>Level</th>
                         <th>Bagian</th>
                         <th>Departemen</th>
+                        <th>TL</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -589,7 +590,8 @@ $resign_count = count($combined_users) - count($non_resign_users);
                             <td><?= htmlspecialchars($user['job_title']) ?></td>
                             <td><?= htmlspecialchars($user['job_level']) ?></td>
                             <td><?= htmlspecialchars($user['bagian']) ?></td>
-                            <td><?= htmlspecialchars($user['departemen']) ?></td>
+                            <td><?= htmlspecialchars($user['departemen']) ?></td>  
+                            <td></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
