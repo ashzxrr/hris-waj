@@ -204,6 +204,23 @@ $stats = getAttendanceStats($filtered_attendance);
             font-weight: bold;
         }
 
+        /* Overtime text - highlight with orange */
+        .status-overtime {
+            color: #ff8c00;
+            font-weight: 700;
+        }
+
+        /* Baris "Tidak Absen" (kecuali hari Minggu) - kuning/oranye lembut */
+        .no-absen-row td {
+            background: linear-gradient(90deg, #fff9e6, #fff3cc);
+        }
+
+        /* Teks untuk status "Tidak Absen" */
+        .status-none {
+            color: #b45309;
+            font-weight: 600;
+        }
+
         .stat-box {
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), var(--card-bg));
             border: 1px solid rgba(26, 115, 232, 0.06);
@@ -212,7 +229,7 @@ $stats = getAttendanceStats($filtered_attendance);
             box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
             min-width: 160px;
             flex: 1 1 150px;
-        }
+        } 
 
         .stat-number {
             font-size: 22px;
@@ -479,12 +496,12 @@ $stats = getAttendanceStats($filtered_attendance);
                     <th>Bagian</th>
                     <th>Departemen</th>
                     <th>Tanggal</th>
-                    <th>Waktu</th>
-                    <th>Status</th>
+                    <th>In</th>
+                    <th>Out</th>
+                    <th>Overtime</th>
                 </tr>
             </thead>
             <tbody>
-                <!-- ...existing rows generation code... -->
                 <?php
                 $no = 1;
                 $periode = new DatePeriod(
@@ -500,79 +517,90 @@ $stats = getAttendanceStats($filtered_attendance);
                             return $item['pin'] == $pin && date('Y-m-d', strtotime($item['datetime'])) == $tanggal_str;
                         });
 
-                        if (!empty($records_on_date)) {
-                            // Pisahkan record IN dan OUT
-                            $in_record = null;
-                            $out_record = null;
-
-                            foreach ($records_on_date as $record) {
-                                if ($record['status'] == 'IN') {
-                                    $in_record = $record;
-                                } else {
-                                    $out_record = $record;
-                                }
+                        // Collect IN and OUT times
+                        $in_times = [];
+                        $out_times = [];
+                        foreach ($records_on_date as $record) {
+                            $ts = strtotime($record['datetime']);
+                            if (strtoupper($record['status']) === 'IN') {
+                                $in_times[] = $ts;
+                            } else {
+                                $out_times[] = $ts;
                             }
+                        }
 
-                            // Tampilkan IN dulu
-                            if ($in_record) {
-                                $tanggal = date('d/m/Y', strtotime($in_record['datetime']));
-                                $hari = getNamaHari($in_record['datetime']);
-                                echo "<tr>
-                    <td>" . $no++ . "</td>
-                    <td style='display: none;'>{$in_record['pin']}</td>
-                    <td>{$in_record['nip']}</td>
-                    <td>{$in_record['nama']}</td>
-                    <td>{$in_record['nik']}</td>
-                    <td>{$in_record['jk']}</td>
-                    <td>{$in_record['job_title']}</td>
-                    <td>{$in_record['job_level']}</td>
-                    <td>{$in_record['bagian']}</td>
-                    <td>{$in_record['departemen']}</td>
-                    <td>{$hari}, {$tanggal}</td>
-                    <td>" . date('H:i:s', strtotime($in_record['datetime'])) . "</td>
-                    <td><span class='status-in'>{$in_record['status']}</span></td>
-                </tr>";
-                            }
+                        // Determine display values
+                        $in_ts = !empty($in_times) ? min($in_times) : null;
+                        $out_ts = !empty($out_times) ? max($out_times) : null;
 
-                            // Kemudian tampilkan OUT
-                            if ($out_record) {
-                                $tanggal = date('d/m/Y', strtotime($out_record['datetime']));
-                                $hari = getNamaHari($out_record['datetime']);
-                                echo "<tr>
-                    <td>" . $no++ . "</td>
-                    <td style='display: none;'>{$out_record['pin']}</td>
-                    <td>{$out_record['nip']}</td>
-                    <td>{$out_record['nama']}</td>
-                    <td>{$out_record['nik']}</td>
-                    <td>{$out_record['jk']}</td>
-                    <td>{$out_record['job_title']}</td>
-                    <td>{$out_record['job_level']}</td>
-                    <td>{$out_record['bagian']}</td>
-                    <td>{$out_record['departemen']}</td>
-                    <td>{$hari}, {$tanggal}</td>
-                    <td>" . date('H:i:s', strtotime($out_record['datetime'])) . "</td>
-                    <td><span class='status-out'>{$out_record['status']}</span></td>
-                </tr>";
-                            }
+                        $in_display = $in_ts ? date('H.i', $in_ts) : '-';
+                        $out_display = $out_ts ? date('H.i', $out_ts) : '-';
+
+                        // Overtime: minutes after 16:30
+                        if ($out_ts) {
+                            $threshold = strtotime($tanggal_str . ' 16:30:00');
+                            $overtime_minutes = $out_ts > $threshold ? floor(($out_ts - $threshold) / 60) : 0;
+                            $overtime_display = $overtime_minutes > 0 ? $overtime_minutes . ' menit' : '----';
                         } else {
-                            // Tampilkan baris "Tidak Absen" seperti sebelumnya
+                            $overtime_display = '----';
+                        }
+
+                        if (!empty($records_on_date)) {
                             $tanggal = date('d/m/Y', strtotime($tanggal_str));
                             $hari = getNamaHari($tanggal_str);
-                            echo "<tr style='background:#fff8e1;'>
-                <td>" . $no++ . "</td>
-                <td style='display: none;'>{$pin}</td>
-                <td>" . ($nip_data[$pin]['nip'] ?? '-') . "</td>
-                <td>" . ($users[$pin] ?? '-') . "</td>
-                <td>" . ($nip_data[$pin]['nik'] ?? '-') . "</td>
-                <td>" . ($nip_data[$pin]['jk'] ?? '-') . "</td>
-                <td>" . ($nip_data[$pin]['job_title'] ?? '-') . "</td>
-                <td>" . ($nip_data[$pin]['job_level'] ?? '-') . "</td>
-                <td>" . ($nip_data[$pin]['bagian'] ?? '-') . "</td>
-                <td>" . ($nip_data[$pin]['departemen'] ?? '-') . "</td>
-                <td>{$hari}, {$tanggal}</td>
-                <td>-</td>
-                <td class='status-none'>Tidak Absen</td>
-            </tr>";
+                            // Use common user/database info from first available record or fallback to nip_data/users
+                            $sample = reset($records_on_date);
+                            $nip = $sample['nip'] ?? ($nip_data[$pin]['nip'] ?? '-');
+                            $nama = $sample['nama'] ?? ($users[$pin] ?? '-');
+                            $nik = $sample['nik'] ?? ($nip_data[$pin]['nik'] ?? '-');
+                            $jk = $sample['jk'] ?? ($nip_data[$pin]['jk'] ?? '-');
+                            $job_title = $sample['job_title'] ?? ($nip_data[$pin]['job_title'] ?? '-');
+                            $job_level = $sample['job_level'] ?? ($nip_data[$pin]['job_level'] ?? '-');
+                            $bagian = $sample['bagian'] ?? ($nip_data[$pin]['bagian'] ?? '-');
+                            $departemen = $sample['departemen'] ?? ($nip_data[$pin]['departemen'] ?? '-');
+
+                            // Prepare overtime cell with styling
+                            $overtime_cell = $overtime_display !== '----' ? "<span class='status-overtime'>{$overtime_display}</span>" : $overtime_display;
+
+                            echo "<tr>
+                                    <td>" . $no++ . "</td>
+                                    <td style='display: none;'>{$pin}</td>
+                                    <td>" . htmlspecialchars($nip) . "</td>
+                                    <td>" . htmlspecialchars($nama) . "</td>
+                                    <td>" . htmlspecialchars($nik) . "</td>
+                                    <td>" . htmlspecialchars($jk) . "</td>
+                                    <td>" . htmlspecialchars($job_title) . "</td>
+                                    <td>" . htmlspecialchars($job_level) . "</td>
+                                    <td>" . htmlspecialchars($bagian) . "</td>
+                                    <td>" . htmlspecialchars($departemen) . "</td>
+                                    <td>{$hari}, {$tanggal}</td>
+                                    <td><span class='status-in'>{$in_display}</span></td>
+                                    <td><span class='status-out'>{$out_display}</span></td>
+                                    <td>{$overtime_cell}</td>
+                                </tr>";
+                        } else {
+                            // No records on this date
+                            $tanggal = date('d/m/Y', strtotime($tanggal_str));
+                            $hari = getNamaHari($tanggal_str);
+                            // jika bukan hari Minggu, beri warna kuning-oranye pada baris
+                            $is_sunday = ($hari === 'Minggu');
+                            $row_class = $is_sunday ? '' : 'no-absen-row';
+                            echo "<tr class='" . $row_class . "'>
+                                <td>" . $no++ . "</td>
+                                <td style='display: none;'>{$pin}</td>
+                                <td>" . ($nip_data[$pin]['nip'] ?? '-') . "</td>
+                                <td>" . ($users[$pin] ?? '-') . "</td>
+                                <td>" . ($nip_data[$pin]['nik'] ?? '-') . "</td>
+                                <td>" . ($nip_data[$pin]['jk'] ?? '-') . "</td>
+                                <td>" . ($nip_data[$pin]['job_title'] ?? '-') . "</td>
+                                <td>" . ($nip_data[$pin]['job_level'] ?? '-') . "</td>
+                                <td>" . ($nip_data[$pin]['bagian'] ?? '-') . "</td>
+                                <td>" . ($nip_data[$pin]['departemen'] ?? '-') . "</td>
+                                <td>{$hari}, {$tanggal}</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td class='status-none'>Tidak Absen</td>
+                            </tr>";
                         }
                     }
                 }
