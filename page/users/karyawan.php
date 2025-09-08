@@ -331,31 +331,60 @@ $resign_count = count($combined_users) - count($non_resign_users);
                 checkbox.addEventListener('change', updateSelectedCount);
             });
 
-            // Set default dates
+            // Wire up date display -> hidden date input behavior
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            const startDisplay = document.getElementById('startDateDisplay');
+            const endDisplay = document.getElementById('endDateDisplay');
+
+            if (startDateInput && startDisplay) {
+                // When display clicked, open native date picker
+                startDisplay.addEventListener('click', () => startDateInput.showPicker ? startDateInput.showPicker() : startDateInput.click());
+                // Sync hidden -> display
+                startDateInput.addEventListener('change', () => {
+                    const d = new Date(startDateInput.value);
+                    startDisplay.value = isNaN(d) ? '' : formatDateDisplay(d);
+                });
+            }
+
+            if (endDateInput && endDisplay) {
+                endDisplay.addEventListener('click', () => endDateInput.showPicker ? endDateInput.showPicker() : endDateInput.click());
+                endDateInput.addEventListener('change', () => {
+                    const d = new Date(endDateInput.value);
+                    endDisplay.value = isNaN(d) ? '' : formatDateDisplay(d);
+                });
+            }
+
+            // Set default dates (ISO for hidden inputs, dd/mm/YYYY for visible)
             const today = new Date();
-            const todayStr = today.toISOString().split('T')[0];
-            document.querySelector('input[name="tanggal_dari"]').value = todayStr;
-            document.querySelector('input[name="tanggal_sampai"]').value = todayStr;
+            const todayISO = formatDateISO(today);
+            const todayDisplay = formatDateDisplay(today);
+            if (startDateInput) startDateInput.value = todayISO;
+            if (endDateInput) endDateInput.value = todayISO;
+            if (startDisplay) startDisplay.value = todayDisplay;
+            if (endDisplay) endDisplay.value = todayDisplay;
         });
 
         function setToday() {
             const today = new Date();
-            const todayStr = formatDate(today);
-
-            document.getElementById('startDate').value = todayStr;
-            document.getElementById('endDate').value = todayStr;
+            document.getElementById('startDate').value = formatDateISO(today);
+            document.getElementById('endDate').value = formatDateISO(today);
+            document.getElementById('startDateDisplay').value = formatDateDisplay(today);
+            document.getElementById('endDateDisplay').value = formatDateDisplay(today);
             updateDateButtons(this);
         }
 
         function setCurrentMonth() {
             const now = new Date();
             // Set first day of current month
-            const firstDay = new Date(now.getFullYear(), now.getMonth(), 2);
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
             // Set last day by getting day 0 of next month (which is last day of current month)
-            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-            document.getElementById('startDate').value = formatDate(firstDay);
-            document.getElementById('endDate').value = formatDate(lastDay);
+            document.getElementById('startDate').value = formatDateISO(firstDay);
+            document.getElementById('endDate').value = formatDateISO(lastDay);
+            document.getElementById('startDateDisplay').value = formatDateDisplay(firstDay);
+            document.getElementById('endDateDisplay').value = formatDateDisplay(lastDay);
             updateDateButtons(this);
         }
 
@@ -364,18 +393,33 @@ $resign_count = count($combined_users) - count($non_resign_users);
             const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
             const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
 
-            document.getElementById('startDate').value = formatDate(firstDay);
-            document.getElementById('endDate').value = formatDate(lastDay);
+            document.getElementById('startDate').value = formatDateISO(firstDay);
+            document.getElementById('endDate').value = formatDateISO(lastDay);
+            document.getElementById('startDateDisplay').value = formatDateDisplay(firstDay);
+            document.getElementById('endDateDisplay').value = formatDateDisplay(lastDay);
             updateDateButtons(this);
         }
 
         function setCustomRange() {
-            document.getElementById('startDate').focus();
+            document.getElementById('startDate').click();
             updateDateButtons(this);
         }
 
-        function formatDate(date) {
-            return date.toISOString().split('T')[0];
+        // ISO format yyyy-mm-dd (for hidden/native date inputs)
+        function formatDateISO(date) {
+            // Build yyyy-mm-dd using local date components to avoid timezone/UTC shifts
+            const d = String(date.getDate()).padStart(2, '0');
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const y = date.getFullYear();
+            return `${y}-${m}-${d}`;
+        }
+
+        // Display format dd/mm/yyyy
+        function formatDateDisplay(date) {
+            const d = String(date.getDate()).padStart(2, '0');
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const y = date.getFullYear();
+            return `${d}/${m}/${y}`;
         }
 
         function updateDateButtons(clickedBtn) {
@@ -429,16 +473,23 @@ $resign_count = count($combined_users) - count($non_resign_users);
                 <div class="date-container">
                     <div class="d-flex align-items-center gap-3 mb-2">
                         <label>📅 Periode:</label>
-                        <input type="date" id="startDate" name="tanggal_dari" class="date-input"
-                            value="<?= date('Y-m-01') ?>">
+                        <!-- hidden native date inputs (used for form submit and native picker) -->
+                        <input type="date" id="startDate" name="tanggal_dari" style="display:none;"
+                            value="<?= date('Y-m-d') ?>">
+                        <!-- visible display in dd/mm/yyyy -->
+                        <input type="text" id="startDateDisplay" class="date-input" readonly
+                            value="<?= date('d/m/Y') ?>">
                         <span>s/d</span>
-                        <input type="date" id="endDate" name="tanggal_sampai" class="date-input"
-                            value="<?= date('Y-m-t') ?>">
+                        <input type="date" id="endDate" name="tanggal_sampai" style="display:none;"
+                            value="<?= date('Y-m-d') ?>">
+                        <input type="text" id="endDateDisplay" class="date-input" readonly
+                            value="<?= date('d/m/Y') ?>">
                     </div>
                     <div class="date-buttons">
                         <button type="button" class="date-btn active" onclick="setCurrentMonth()">Bulan Ini</button>
                         <button type="button" class="date-btn" onclick="setToday()">Hari Ini</button>
                         <button type="button" class="date-btn" onclick="setCustomRange()">Custom</button>
+                        <button type="button" class="date-btn" onclick="setPreviousMonth()">Bulan Lalu</button>
                         <button type="submit" name="detailBtn" value="1" id="submitBtn" class="btn-primary">
                             <div class="spinner"></div>
                             Detail Absensi <span class="emoji">➡️</span>
