@@ -18,14 +18,16 @@ require __DIR__ . '/../../includes/header.php';
 // Ambil data user dari mesin fingerprint
 $users = getUsers($ip, $port, $key);
 
-// Ambil semua data user dari database (termasuk yang NIP-nya RESIGN untuk styling)
 $database_users = [];
-$query = "SELECT pin, nip, nik, nama, jk, job_title, job_level, bagian, departemen FROM users ORDER BY CAST(pin AS UNSIGNED)";
+$database_users_by_id = [];
+// Ambil semua data user dari database (termasuk yang NIP-nya RESIGN untuk styling)
+$query = "SELECT id, pin, tl_id, nip, nik, nama, jk, job_title, job_level, bagian, departemen FROM users ORDER BY CAST(pin AS UNSIGNED)";
 $result = mysqli_query($mysqli, $query);
 
 if ($result) {
     while ($row = mysqli_fetch_assoc($result)) {
         $database_users[$row['pin']] = $row;
+        $database_users_by_id[$row['id']] = $row;
     }
 }
 
@@ -34,8 +36,14 @@ $combined_users = [];
 
 // 1. Tambahkan semua user dari mesin fingerprint
 foreach ($users as $pin => $name) {
-    $combined_users[$pin] = [
-        'pin' => $pin,
+        $tl_id_val = isset($database_users[$pin]) ? ($database_users[$pin]['tl_id'] ?? null) : null;
+        $tl_name_val = ($tl_id_val && isset($database_users_by_id[$tl_id_val])) ? $database_users_by_id[$tl_id_val]['nama'] : '-';
+
+        $combined_users[$pin] = [
+            'pin' => $pin,
+            'id' => isset($database_users[$pin]) ? $database_users[$pin]['id'] : null,
+            'tl_id' => $tl_id_val,
+            'tl_name' => $tl_name_val,
         'nama_mesin' => $name,
         'nama_db' => isset($database_users[$pin]) ? $database_users[$pin]['nama'] : '-',
         'nip' => isset($database_users[$pin]) ? $database_users[$pin]['nip'] : '-',
@@ -54,10 +62,16 @@ foreach ($users as $pin => $name) {
 
 // 2. Tambahkan user yang hanya ada di database
 foreach ($database_users as $pin => $data) {
-    if (!isset($users[$pin])) {
+        if (!isset($users[$pin])) {
         $is_resign = strtolower(trim($data['nip'])) === 'resign';
+            $tl_id_val = $data['tl_id'] ?? null;
+            $tl_name_val = ($tl_id_val && isset($database_users_by_id[$tl_id_val])) ? $database_users_by_id[$tl_id_val]['nama'] : '-';
+
         $combined_users[$pin] = [
             'pin' => $pin,
+            'id' => $data['id'],
+            'tl_id' => $tl_id_val,
+            'tl_name' => $tl_name_val,
             'nama_mesin' => '-',
             'nama_db' => $data['nama'],
             'nip' => $data['nip'],
@@ -97,6 +111,19 @@ $users_database_only = count(array_filter($non_resign_users, function ($user) {
 }));
 
 $resign_count = count($combined_users) - count($non_resign_users);
+?>
+
+<?php
+// Build TL options: collect unique tl_id values referenced in users and map to names
+$tl_options = [];
+foreach ($database_users as $row) {
+    if (!empty($row['tl_id'])) {
+        $tid = $row['tl_id'];
+        if (isset($database_users_by_id[$tid])) {
+            $tl_options[$tid] = $database_users_by_id[$tid]['nama'];
+        }
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -183,7 +210,7 @@ $resign_count = count($combined_users) - count($non_resign_users);
             selectedMachineOnly.forEach((checkbox, index) => {
                 const row = checkbox.closest('tr');
                 const pin = checkbox.value;
-                const namaMesin = row.cells[2].textContent.trim();
+                const namaMesin = row.cells[3].textContent.trim();
 
                 // Buat hidden inputs untuk pin dan nama
                 const pinInput = document.createElement('input');
@@ -226,18 +253,23 @@ $resign_count = count($combined_users) - count($non_resign_users);
             loadingText.classList.remove('show');
         }
 
-        // Tambahkan variabel global
-        let currentBagian = 'all';
+    // Tambahkan variabel global
+    let currentBagian = 'all';
+    let currentTL = 'all';
 
-        // Update fungsi searchAndFilter
-        function searchAndFilter() {
+    // Update fungsi searchAndFilter
+    function searchAndFilter() {
             const searchInput = document.getElementById('searchInput').value.toLowerCase();
             const tableRows = document.querySelectorAll('tbody tr');
             let visibleCount = 0;
 
             tableRows.forEach(row => {
-                const bagianCell = row.cells[9].textContent.toLowerCase(); // Sesuaikan dengan index kolom bagian
+                const bagianCell = (row.cells[10] && row.cells[10].textContent) ? row.cells[10].textContent.toLowerCase() : '';
                 const matchBagian = currentBagian === 'all' || bagianCell === currentBagian.toLowerCase();
+
+                // Use data attribute for tl id matching (more reliable than comparing names)
+                const tlId = row.dataset.tlId ? String(row.dataset.tlId) : '';
+                const matchTL = currentTL === 'all' || tlId === String(currentTL);
 
                 // Existing search logic
                 const matchSearch = Array.from(row.cells).some(cell =>
@@ -248,7 +280,7 @@ $resign_count = count($combined_users) - count($non_resign_users);
                 const matchFilter = currentFilter === 'all' ||
                     (currentFilter === 'machine' && row.classList.contains('machine-only'));
 
-                if (matchSearch && matchFilter && matchBagian) {
+                if (matchSearch && matchFilter && matchBagian && matchTL) {
                     row.style.display = '';
                     row.classList.remove('hidden');
                     const checkbox = row.querySelector('input[type="checkbox"]');
@@ -273,6 +305,11 @@ $resign_count = count($combined_users) - count($non_resign_users);
         // Tambahkan fungsi filterByBagian
         function filterByBagian(bagian) {
             currentBagian = bagian;
+            searchAndFilter();
+        }
+        
+        function filterByTL(tl) {
+            currentTL = tl;
             searchAndFilter();
         }
         function setFilter(filter) {
@@ -583,6 +620,14 @@ $resign_count = count($combined_users) - count($non_resign_users);
                         </optgroup>
                     </select>
                 </div>
+                <div class="filter-dropdown">
+                    <select class="filter-select" id="tlFilter" onchange="filterByTL(this.value)">
+                        <option value="all">👥 Semua TL</option>
+                        <?php foreach ($tl_options as $tid => $tname): ?>
+                            <option value="<?= htmlspecialchars($tid) ?>"><?= htmlspecialchars($tname) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <!-- Ganti button add user yang lama dengan yang baru -->
                 <div class="action-buttons">
                     <button type="submit" name="addUserBtn" value="1" id="addUserBtn" class="btn-secondary"
@@ -601,6 +646,7 @@ $resign_count = count($combined_users) - count($non_resign_users);
                 <thead>
                     <tr>
                         <th class="checkbox-col">✓</th>
+                        <th>ID</th>
                         <th class="pin-col">PIN</th>
                         <th>Nama (Mesin)</th>
                         <th>Nama (Database)</th>
@@ -617,7 +663,8 @@ $resign_count = count($combined_users) - count($non_resign_users);
                 <tbody>
                     <?php foreach ($combined_users as $user): ?>
                         <tr class="user-row <?= (!$user['in_database']) ? 'machine-only' : '' ?> <?= $user['is_resign'] ? 'resign' : '' ?>"
-                            data-status="<?= $user['in_machine'] && $user['in_database'] ? 'both' : ($user['in_machine'] ? 'machine' : 'database') ?>">
+                            data-status="<?= $user['in_machine'] && $user['in_database'] ? 'both' : ($user['in_machine'] ? 'machine' : 'database') ?>"
+                            data-tl-id="<?= htmlspecialchars($user['tl_id'] ?? '') ?>">
                             <td class="checkbox-col">
                                 <?php if ($user['in_machine'] && !$user['is_resign']): ?>
                                     <input type="checkbox" name="selected_users[]" value="<?= htmlspecialchars($user['pin']) ?>"
@@ -629,6 +676,7 @@ $resign_count = count($combined_users) - count($non_resign_users);
                                     <span style="color: #ccc;">-</span>
                                 <?php endif; ?>
                             </td>
+                            <td><?= htmlspecialchars($user['id'] ?? '-') ?></td>
                             <td class="pin-col"><?= htmlspecialchars($user['pin']) ?></td>
                             <td><?= htmlspecialchars($user['nama_mesin']) ?></td>
                             <td><?= htmlspecialchars($user['nama_db']) ?><?= $user['is_resign'] ? ' <small>(RESIGN)</small>' : '' ?>
@@ -642,7 +690,7 @@ $resign_count = count($combined_users) - count($non_resign_users);
                             <td><?= htmlspecialchars($user['job_level']) ?></td>
                             <td><?= htmlspecialchars($user['bagian']) ?></td>
                             <td><?= htmlspecialchars($user['departemen']) ?></td>  
-                            <td></td>
+                            <td><?= htmlspecialchars($user['tl_name'] ?? '-') ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
