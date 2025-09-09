@@ -36,14 +36,14 @@ $combined_users = [];
 
 // 1. Tambahkan semua user dari mesin fingerprint
 foreach ($users as $pin => $name) {
-        $tl_id_val = isset($database_users[$pin]) ? ($database_users[$pin]['tl_id'] ?? null) : null;
-        $tl_name_val = ($tl_id_val && isset($database_users_by_id[$tl_id_val])) ? $database_users_by_id[$tl_id_val]['nama'] : '-';
+    $tl_id_val = isset($database_users[$pin]) ? ($database_users[$pin]['tl_id'] ?? null) : null;
+    $tl_name_val = ($tl_id_val && isset($database_users_by_id[$tl_id_val])) ? $database_users_by_id[$tl_id_val]['nama'] : '-';
 
-        $combined_users[$pin] = [
-            'pin' => $pin,
-            'id' => isset($database_users[$pin]) ? $database_users[$pin]['id'] : null,
-            'tl_id' => $tl_id_val,
-            'tl_name' => $tl_name_val,
+    $combined_users[$pin] = [
+        'pin' => $pin,
+        'id' => isset($database_users[$pin]) ? $database_users[$pin]['id'] : null,
+        'tl_id' => $tl_id_val,
+        'tl_name' => $tl_name_val,
         'nama_mesin' => $name,
         'nama_db' => isset($database_users[$pin]) ? $database_users[$pin]['nama'] : '-',
         'nip' => isset($database_users[$pin]) ? $database_users[$pin]['nip'] : '-',
@@ -62,10 +62,10 @@ foreach ($users as $pin => $name) {
 
 // 2. Tambahkan user yang hanya ada di database
 foreach ($database_users as $pin => $data) {
-        if (!isset($users[$pin])) {
+    if (!isset($users[$pin])) {
         $is_resign = strtolower(trim($data['nip'])) === 'resign';
-            $tl_id_val = $data['tl_id'] ?? null;
-            $tl_name_val = ($tl_id_val && isset($database_users_by_id[$tl_id_val])) ? $database_users_by_id[$tl_id_val]['nama'] : '-';
+        $tl_id_val = $data['tl_id'] ?? null;
+        $tl_name_val = ($tl_id_val && isset($database_users_by_id[$tl_id_val])) ? $database_users_by_id[$tl_id_val]['nama'] : '-';
 
         $combined_users[$pin] = [
             'pin' => $pin,
@@ -253,12 +253,12 @@ foreach ($database_users as $row) {
             loadingText.classList.remove('show');
         }
 
-    // Tambahkan variabel global
-    let currentBagian = 'all';
-    let currentTL = 'all';
+        // Tambahkan variabel global
+        let currentBagian = 'all';
+        let currentTL = 'all';
 
-    // Update fungsi searchAndFilter
-    function searchAndFilter() {
+        // Update fungsi searchAndFilter
+        function searchAndFilter() {
             const searchInput = document.getElementById('searchInput').value.toLowerCase();
             const tableRows = document.querySelectorAll('tbody tr');
             let visibleCount = 0;
@@ -307,7 +307,7 @@ foreach ($database_users as $row) {
             currentBagian = bagian;
             searchAndFilter();
         }
-        
+
         function filterByTL(tl) {
             currentTL = tl;
             searchAndFilter();
@@ -519,8 +519,7 @@ foreach ($database_users as $row) {
                         <span>s/d</span>
                         <input type="date" id="endDate" name="tanggal_sampai" style="display:none;"
                             value="<?= date('Y-m-d') ?>">
-                        <input type="text" id="endDateDisplay" class="date-input" readonly
-                            value="<?= date('d/m/Y') ?>">
+                        <input type="text" id="endDateDisplay" class="date-input" readonly value="<?= date('d/m/Y') ?>">
                     </div>
                     <div class="date-buttons">
                         <button type="button" class="date-btn active" onclick="setCurrentMonth()">Bulan Ini</button>
@@ -623,9 +622,32 @@ foreach ($database_users as $row) {
                 <div class="filter-dropdown">
                     <select class="filter-select" id="tlFilter" onchange="filterByTL(this.value)">
                         <option value="all">👥 Semua TL</option>
-                        <?php foreach ($tl_options as $tid => $tname): ?>
-                            <option value="<?= htmlspecialchars($tid) ?>"><?= htmlspecialchars($tname) ?></option>
-                        <?php endforeach; ?>
+
+                        <optgroup label="CABUT">
+                            <option value="8">Karyawati</option>
+                            <option value="3">Sri Utami</option>
+                                <option value="2">ST Nur Farokah</option>
+                                <option value="25">Fhilis Sulestari</option>
+                                <option value="22">Muhammad Regatana Hidayatulloh</option>
+                                <option value="119">Zusita Arsdhia Indrayani</option>
+                                <option value="34">Wahyu Surodo</option>
+                                <option value="60">Lutfi Dwi Firmansyah</option>
+                                <option value="109">Ruliatul Fidiah</option>
+                        </optgroup>
+
+                        <optgroup label="Cetak">
+                            <option value="57">Muhammad Tamamur Ridlwan</option>
+                            <option value="53">Abdul Rouf Khoiri</option>
+                            <option value="7">Anita</option>
+                            <option value="34">Patur Albertino</option>
+                        </optgroup>
+
+                        <optgroup label="Dan Lain lain">
+                            <option value="1">Anik</option>
+                            <option value="98">M Gaung Sidiq</option>
+                            <option value="40">Cankiswa</option>
+                            <option value="118">Kerinna</option>
+                        </optgroup>
                     </select>
                 </div>
                 <!-- Ganti button add user yang lama dengan yang baru -->
@@ -689,7 +711,7 @@ foreach ($database_users as $row) {
                             <td><?= htmlspecialchars($user['job_title']) ?></td>
                             <td><?= htmlspecialchars($user['job_level']) ?></td>
                             <td><?= htmlspecialchars($user['bagian']) ?></td>
-                            <td><?= htmlspecialchars($user['departemen']) ?></td>  
+                            <td><?= htmlspecialchars($user['departemen']) ?></td>
                             <td><?= htmlspecialchars($user['tl_name'] ?? '-') ?></td>
                         </tr>
                     <?php endforeach; ?>
