@@ -510,16 +510,11 @@ foreach ($database_users as $row) {
                 <div class="date-container">
                     <div class="d-flex align-items-center gap-3 mb-2">
                         <label>📅 Periode:</label>
-                        <!-- hidden native date inputs (used for form submit and native picker) -->
-                        <input type="date" id="startDate" name="tanggal_dari" style="display:none;"
-                            value="<?= date('Y-m-d') ?>">
-                        <!-- visible display in dd/mm/yyyy -->
-                        <input type="text" id="startDateDisplay" class="date-input" readonly
-                            value="<?= date('d/m/Y') ?>">
+                        <input type="date" id="startDate" name="tanggal_dari" class="date-input"
+                            value="<?= date('Y-m-01') ?>">
                         <span>s/d</span>
-                        <input type="date" id="endDate" name="tanggal_sampai" style="display:none;"
-                            value="<?= date('Y-m-d') ?>">
-                        <input type="text" id="endDateDisplay" class="date-input" readonly value="<?= date('d/m/Y') ?>">
+                        <input type="date" id="endDate" name="tanggal_sampai" class="date-input"
+                            value="<?= date('Y-m-t') ?>">
                     </div>
                     <div class="date-buttons">
                         <button type="button" class="date-btn active" onclick="setCurrentMonth()">Bulan Ini</button>
@@ -626,13 +621,13 @@ foreach ($database_users as $row) {
                         <optgroup label="CABUT">
                             <option value="8">Karyawati</option>
                             <option value="3">Sri Utami</option>
-                                <option value="2">ST Nur Farokah</option>
-                                <option value="25">Fhilis Sulestari</option>
-                                <option value="22">Muhammad Regatana Hidayatulloh</option>
-                                <option value="119">Zusita Arsdhia Indrayani</option>
-                                <option value="34">Wahyu Surodo</option>
-                                <option value="60">Lutfi Dwi Firmansyah</option>
-                                <option value="109">Ruliatul Fidiah</option>
+                            <option value="2">ST Nur Farokah</option>
+                            <option value="25">Fhilis Sulestari</option>
+                            <option value="22">Muhammad Regatana Hidayatulloh</option>
+                            <option value="119">Zusita Arsdhia Indrayani</option>
+                            <option value="34">Wahyu Surodo</option>
+                            <option value="60">Lutfi Dwi Firmansyah</option>
+                            <option value="109">Ruliatul Fidiah</option>
                         </optgroup>
 
                         <optgroup label="Cetak">

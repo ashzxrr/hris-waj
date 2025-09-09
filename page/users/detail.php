@@ -370,7 +370,7 @@ if (isset($_POST['save_notes'])) {
         }
 
         /* Buttons (rounded + bubble ornaments) */
-        .btn {
+        .btn { 
             padding: 8px 14px;
             cursor: pointer;
             border: none;
@@ -383,7 +383,7 @@ if (isset($_POST['save_notes'])) {
             transition: all .18s ease;
             position: relative;
             overflow: hidden;
-        }
+        } 
 
         .btn::before,
         .btn::after {
