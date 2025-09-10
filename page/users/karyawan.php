@@ -157,38 +157,16 @@ foreach ($database_users as $row) {
 
         function validateForm() {
             const checkboxes = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)');
-            const tanggalDari = document.querySelector('input[name="tanggal_dari"]').value;
-            const tanggalSampai = document.querySelector('input[name="tanggal_sampai"]').value;
 
             if (checkboxes.length === 0) {
                 alert('⚠️ Pilih minimal satu user!');
                 return false;
             }
 
-            if (!tanggalDari || !tanggalSampai) {
-                alert('⚠️ Tanggal dari dan sampai harus diisi!');
-                return false;
-            }
-
-            if (tanggalDari > tanggalSampai) {
-                alert('⚠️ Tanggal dari tidak boleh lebih besar dari tanggal sampai!');
-                return false;
-            }
-
-            // Show loading spinner
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.classList.add('loading');
-
-            // Tampilkan loading tanpa mengganggu submit form
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            if (loadingIndicator) {
-                loadingIndicator.classList.add('show');
-            }
-
-            return true; // Ini penting! Harus return true agar form bisa submit
+            return true;
         }
 
-        function validateAddUsers() {
+    function validateAddUsers() {
             const machineOnlyCheckboxes = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)');
             const selectedMachineOnly = Array.from(machineOnlyCheckboxes).filter(checkbox => {
                 return checkbox.closest('tr').classList.contains('machine-only');
@@ -227,31 +205,7 @@ foreach ($database_users as $row) {
             });
         }
 
-        function showLoading() {
-            const submitBtn = document.getElementById('submitBtn');
-            const loadingText = document.getElementById('loadingText');
-
-            // Disable button and show loading
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<div class="loading-spinner show"></div> Memproses...';
-            loadingText.classList.add('show');
-
-            // Optional: Hide loading after some time if form doesn't submit
-            setTimeout(() => {
-                if (submitBtn.disabled) {
-                    hideLoading();
-                }
-            }, 30000); // 30 seconds timeout
-        }
-
-        function hideLoading() {
-            const submitBtn = document.getElementById('submitBtn');
-            const loadingText = document.getElementById('loadingText');
-
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Detail Absensi <span class="emoji">➡️</span>';
-            loadingText.classList.remove('show');
-        }
+    // showLoading / hideLoading removed (attendance submission UI not needed on employee-only page)
 
         // Tambahkan variabel global
         let currentBagian = 'all';
@@ -368,114 +322,16 @@ foreach ($database_users as $row) {
                 checkbox.addEventListener('change', updateSelectedCount);
             });
 
-            // Wire up date display -> hidden date input behavior
-            const startDateInput = document.getElementById('startDate');
-            const endDateInput = document.getElementById('endDate');
-            const startDisplay = document.getElementById('startDateDisplay');
-            const endDisplay = document.getElementById('endDateDisplay');
-
-            if (startDateInput && startDisplay) {
-                // When display clicked, open native date picker
-                startDisplay.addEventListener('click', () => startDateInput.showPicker ? startDateInput.showPicker() : startDateInput.click());
-                // Sync hidden -> display
-                startDateInput.addEventListener('change', () => {
-                    const d = new Date(startDateInput.value);
-                    startDisplay.value = isNaN(d) ? '' : formatDateDisplay(d);
-                });
-            }
-
-            if (endDateInput && endDisplay) {
-                endDisplay.addEventListener('click', () => endDateInput.showPicker ? endDateInput.showPicker() : endDateInput.click());
-                endDateInput.addEventListener('change', () => {
-                    const d = new Date(endDateInput.value);
-                    endDisplay.value = isNaN(d) ? '' : formatDateDisplay(d);
-                });
-            }
-
-            // Set default dates (ISO for hidden inputs, dd/mm/YYYY for visible)
-            const today = new Date();
-            const todayISO = formatDateISO(today);
-            const todayDisplay = formatDateDisplay(today);
-            if (startDateInput) startDateInput.value = todayISO;
-            if (endDateInput) endDateInput.value = todayISO;
-            if (startDisplay) startDisplay.value = todayDisplay;
-            if (endDisplay) endDisplay.value = todayDisplay;
+            // Date/attendance UI removed for employee-only page
         });
 
-        function setToday() {
-            const today = new Date();
-            document.getElementById('startDate').value = formatDateISO(today);
-            document.getElementById('endDate').value = formatDateISO(today);
-            document.getElementById('startDateDisplay').value = formatDateDisplay(today);
-            document.getElementById('endDateDisplay').value = formatDateDisplay(today);
-            updateDateButtons(this);
-        }
-
-        function setCurrentMonth() {
-            const now = new Date();
-            // Set first day of current month
-            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-            // Set last day by getting day 0 of next month (which is last day of current month)
-            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-            document.getElementById('startDate').value = formatDateISO(firstDay);
-            document.getElementById('endDate').value = formatDateISO(lastDay);
-            document.getElementById('startDateDisplay').value = formatDateDisplay(firstDay);
-            document.getElementById('endDateDisplay').value = formatDateDisplay(lastDay);
-            updateDateButtons(this);
-        }
-
-        function setPreviousMonth() {
-            const now = new Date();
-            const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
-
-            document.getElementById('startDate').value = formatDateISO(firstDay);
-            document.getElementById('endDate').value = formatDateISO(lastDay);
-            document.getElementById('startDateDisplay').value = formatDateDisplay(firstDay);
-            document.getElementById('endDateDisplay').value = formatDateDisplay(lastDay);
-            updateDateButtons(this);
-        }
-
-        function setCustomRange() {
-            document.getElementById('startDate').click();
-            updateDateButtons(this);
-        }
-
-        // ISO format yyyy-mm-dd (for hidden/native date inputs)
-        function formatDateISO(date) {
-            // Build yyyy-mm-dd using local date components to avoid timezone/UTC shifts
-            const d = String(date.getDate()).padStart(2, '0');
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            const y = date.getFullYear();
-            return `${y}-${m}-${d}`;
-        }
-
-        // Display format dd/mm/yyyy
-        function formatDateDisplay(date) {
-            const d = String(date.getDate()).padStart(2, '0');
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            const y = date.getFullYear();
-            return `${d }/${m}/${y}`;
-        }
-
-        function updateDateButtons(clickedBtn) {
-            document.querySelectorAll('.date-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            clickedBtn.classList.add('active');
-        }
-
-        // Initialize with current month
-        document.addEventListener('DOMContentLoaded', () => {
-            setCurrentMonth();
-        });
+    // Date helpers removed
     </script>
 </head>
 
 <body>
     <h2>👥 Data User Fingerprint & Database</h2>
-    <form method="POST" action="?page=users-detail" onsubmit="return validateForm()" id="absenForm">
+    <form method="POST" id="absenForm">
         <div class="main-container">
             <!-- Stats Section -->
             <div class="stats-wrapper">
@@ -505,42 +361,19 @@ foreach ($database_users as $row) {
                 <?php endif; ?>
             </div>
 
-            <!-- Period Section -->
-            <div class="period-container">
-                <div class="date-container">
-                    <div class="d-flex align-items-center gap-3 mb-2">
-                        <label>📅 Periode:</label>
-                        <input type="date" id="startDate" name="tanggal_dari" class="date-input"
-                            value="<?= date('Y-m-01') ?>">
-                        <span>s/d</span>
-                        <input type="date" id="endDate" name="tanggal_sampai" class="date-input"
-                            value="<?= date('Y-m-t') ?>">
-                    </div>
-                    <div class="date-buttons">
-                        <button type="button" class="date-btn active" onclick="setCurrentMonth()">Bulan Ini</button>
-                        <button type="button" class="date-btn" onclick="setToday()">Hari Ini</button>
-                        <button type="button" class="date-btn" onclick="setCustomRange()">Custom</button>
-                        <button type="button" class="date-btn" onclick="setPreviousMonth()">Bulan Lalu</button>
-                        <button type="submit" name="detailBtn" value="1" id="submitBtn" class="btn-primary">
-                            <div class="spinner"></div>
-                            Detail Absensi <span class="emoji">➡️</span>
-                        </button>
-                    </div>
+            <div class="search-container">
+                <div>
+                    <label>🔍 Cari: </label>
+                    <input type="text" id="searchInput" class="search-input"
+                        placeholder="Ketik PIN, Nama, NIP, atau Bagian..." />
+                </div>
+                <div style="color: #666; font-size: 12px;">
+                    <span id="userCount"><?= count($combined_users) ?></span> user ditampilkan |
+                    <span id="selectedCount">0</span> dipilih
                 </div>
             </div>
         </div>
 
-        <div class="search-container">
-            <div>
-                <label>🔍 Cari: </label>
-                <input type="text" id="searchInput" class="search-input"
-                    placeholder="Ketik PIN, Nama, NIP, atau Bagian..." />
-            </div>
-            <div style="color: #666; font-size: 12px;">
-                <span id="userCount"><?= count($combined_users) ?></span> user ditampilkan |
-                <span id="selectedCount">0</span> dipilih
-            </div>
-        </div>
         <div class="select-all">
             <div class="d-flex align-items-center gap-2" style="justify-content: space-between">
                 <div class="d-flex align-items-center gap-2">
@@ -636,7 +469,7 @@ foreach ($database_users as $row) {
                             <option value="7">Anita</option>
                             <option value="24">Patur Albertino</option>
                             <option value="27">Anas Ja'far</option>
-                            <option value="48">	M.Jamaludin</option>
+                            <option value="48"> M.Jamaludin</option>
                             <option value="99">Nila Widya Sari</option>
                             <option value="113">Nurul Izzuddin</option>
                         </optgroup>
@@ -644,7 +477,7 @@ foreach ($database_users as $row) {
                         <optgroup label="Dan Lain lain">
                             <option value="1">Anik</option>
                             <option value="98">M Gaung Sidiq</option>
-                            <option value="40">Cankiswa</option>
+                            <option value="40">Cankiswan</option>
                             <option value="118">Kerinna</option>
                         </optgroup>
                     </select>

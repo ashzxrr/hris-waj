@@ -214,6 +214,20 @@ try {
                 </div>
 
                 <div class="col-md-3 col-sm-6 mb-4">
+                    <a href="?page=attends" class="text-decoration-none">
+                    <div class="card hover-card">
+                        <div class="card-body">
+                            <i class="fa-solid fa-money-bill-wave text-success"></i>
+                            <div class="card-content">
+                                <div class="value-text">Attendance</div>
+                                <div class="value-text"><?= number_format($total_users, 0, ',', '.') ?></div>
+                            </div>
+                        </div>
+                    </div>
+                    </a>    
+                </div>
+
+                <div class="col-md-3 col-sm-6 mb-4">
                     <a href="?page=payroll" class="text-decoration-none">
                     <div class="card hover-card">
                         <div class="card-body">
