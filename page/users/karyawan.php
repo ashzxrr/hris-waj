@@ -249,6 +249,60 @@ foreach ($database_users as $row) {
                         checkbox.checked = false;
                     }
                 }
+
+                    function validateEditUsers() {
+                        const checked = Array.from(document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)'));
+                        const dbSelected = checked.filter(cb => !cb.closest('tr').classList.contains('machine-only'));
+
+                        if (dbSelected.length === 0) {
+                            alert('⚠️ Pilih minimal satu user yang sudah ada di database untuk diedit.');
+                            return false;
+                        }
+
+                        const form = document.getElementById('absenForm');
+                        // remove old user_data inputs
+                        const old = form.querySelectorAll('input[name^="user_data"]');
+                        old.forEach(i => i.remove());
+
+                        dbSelected.forEach((cb, idx) => {
+                            const tr = cb.closest('tr');
+                            const pin = cb.value;
+                            // create hidden input user_data[idx][pin]
+                            const inpPin = document.createElement('input');
+                            inpPin.type = 'hidden';
+                            inpPin.name = `user_data[${idx}][pin]`;
+                            inpPin.value = pin;
+                            form.appendChild(inpPin);
+
+                            // Robustly find the NIP cell by header name (fallback to index 5)
+                            let nipVal = '';
+                            try {
+                                let nipIndex = -1;
+                                const thead = document.querySelector('table thead');
+                                if (thead) {
+                                    const ths = thead.querySelectorAll('th');
+                                    ths.forEach((th, i) => {
+                                        if (th.textContent.trim().toLowerCase() === 'nip') nipIndex = i;
+                                    });
+                                }
+                                if (nipIndex === -1) nipIndex = 5; // legacy fallback
+                                const nipCell = tr.cells[nipIndex];
+                                if (nipCell) nipVal = nipCell.textContent.trim();
+                            } catch (e) {
+                                nipVal = '';
+                            }
+                            // normalize placeholder values
+                            if (nipVal === '-' || nipVal === '') nipVal = '';
+                            const inpNip = document.createElement('input');
+                            inpNip.type = 'hidden';
+                            inpNip.name = `user_data[${idx}][nip]`;
+                            inpNip.value = nipVal;
+                            form.appendChild(inpNip);
+                        });
+
+                        // allow form to submit to edit page
+                        return true;
+                    }
             });
 
             document.getElementById('userCount').textContent = visibleCount;
@@ -280,6 +334,8 @@ foreach ($database_users as $row) {
 
             // Update tombol tambah user berdasarkan selection
             updateAddUserButton();
+            // Update edit button state
+            updateEditButton();
         }
 
         function updateAddUserButton() {
@@ -310,6 +366,21 @@ foreach ($database_users as $row) {
                 document.querySelectorAll('.machine-only-highlight').forEach(row => {
                     row.classList.remove('machine-only-highlight');
                 });
+            }
+        }
+
+        // Enable/disable Edit button: only enable when selected users exist AND are in database
+        function updateEditButton() {
+            const editBtn = document.getElementById('editUserBtn');
+            const checked = Array.from(document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)'));
+            // Only allow editing users that are in database (rows without class machine-only)
+            const dbSelected = checked.filter(cb => !cb.closest('tr').classList.contains('machine-only'));
+            if (dbSelected.length > 0) {
+                editBtn.disabled = false;
+                editBtn.innerHTML = `<span class="emoji">✏️</span> Edit ${dbSelected.length} User`;
+            } else {
+                editBtn.disabled = true;
+                editBtn.innerHTML = `<span class="emoji">✏️</span> Edit User`;
             }
         }
 
@@ -379,12 +450,11 @@ foreach ($database_users as $row) {
                 <div class="d-flex align-items-center gap-2">
                     <label>
                         <input type="checkbox" onchange="toggleAll(this)">
-                        <strong>Pilih Semua User Aktif (yang terlihat)</strong>
                     </label>
                     <div class="small-legend">
                         <div class="legend-item">
                             <div class="legend-color legend-machine-only"></div>
-                            <span>Hanya di mesin (bisa ditambahkan)</span>
+                            <span>Tambahkan</span>
                         </div>
                         <?php if ($resign_count > 0): ?>
                             <div class="legend-item resign-legend">
@@ -489,6 +559,12 @@ foreach ($database_users as $row) {
                         <span class="emoji">👤</span>
                         <span class="button-text">Tambah ke Database</span>
                         <div class="spinner" style="display: none;"></div>
+                    </button>
+                    <!-- Edit existing database users (enabled only when selected users exist in database) -->
+                    <button type="submit" name="editUserBtn" value="1" id="editUserBtn" class="btn-secondary"
+                        onclick="return validateEditUsers()" formaction="?page=edit-karyawan" disabled style="margin-left:8px;">
+                        <span class="emoji">✏️</span>
+                        <span class="button-text">Edit User</span>
                     </button>
                 </div>
             </div>
