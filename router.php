@@ -15,7 +15,8 @@ $allowed_pages = [
     'detail-attends'  => __DIR__ . '/page/attend/detail-attends.php',
     'users'    => __DIR__ . '/page/users/karyawan.php',
     'users-detail'    => __DIR__ . '/page/users/detail.php',
-    'users-add'    => __DIR__ . '/page/users/add-karyawan.php'
+    'edit-karyawan'=> __DIR__ . '/page/users/edit-karyawan.php',
+    'users-add'=> __DIR__ . '/page/users/add-karyawan.php'
 ];
 
 // Cek apakah page ada di daftar
