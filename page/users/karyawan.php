@@ -634,7 +634,11 @@ foreach ($database_users as $row) {
                             <option value="57">Muhammad Tamamur Ridlwan</option>
                             <option value="53">Abdul Rouf Khoiri</option>
                             <option value="7">Anita</option>
-                            <option value="34">Patur Albertino</option>
+                            <option value="24">Patur Albertino</option>
+                            <option value="27">Anas Ja'far</option>
+                            <option value="48">	M.Jamaludin</option>
+                            <option value="99">Nila Widya Sari</option>
+                            <option value="113">Nurul Izzuddin</option>
                         </optgroup>
 
                         <optgroup label="Dan Lain lain">
