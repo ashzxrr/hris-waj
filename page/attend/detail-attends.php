@@ -630,7 +630,7 @@ if (isset($_POST['save_notes'])) {
 
     <!-- Action Buttons -->
     <div style="margin-bottom: 15px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <a href="?page=users" class="btn btn-secondary">⬅️ Kembali</a>
+        <a href="?page=attends" class="btn btn-secondary">⬅️ Kembali</a>
 
         <?php if (!empty($filtered_attendance)): ?>
             <form method="POST" style="display: inline;">

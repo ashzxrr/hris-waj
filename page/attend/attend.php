@@ -15,6 +15,38 @@ require __DIR__ . '/../../includes/config.php';
 require __DIR__ . '/../../includes/functions.php';
 require __DIR__ . '/../../includes/header.php';
 
+// Handle save_notes: create table if missing and insert/update absence_notes
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_notes'])) {
+    $absence_notes_post = $_POST['absence_notes'] ?? [];
+
+    // ensure table exists
+    $create_sql = "CREATE TABLE IF NOT EXISTS absence_notes (
+        pin VARCHAR(32) NOT NULL,
+        date DATE NOT NULL,
+        code VARCHAR(4) DEFAULT NULL,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY(pin,date)
+    ) DEFAULT CHARSET=utf8mb4 ENGINE=InnoDB";
+    mysqli_query($mysqli, $create_sql);
+
+    foreach ($absence_notes_post as $pin => $dates) {
+        foreach ($dates as $date => $code) {
+            $pin_esc = mysqli_real_escape_string($mysqli, $pin);
+            $date_esc = mysqli_real_escape_string($mysqli, $date);
+            $code_esc = mysqli_real_escape_string($mysqli, $code);
+
+            // Insert or update
+            $sql = "INSERT INTO absence_notes (pin, date, code, updated_at) VALUES ('{$pin_esc}','{$date_esc}','{$code_esc}', NOW()) 
+                    ON DUPLICATE KEY UPDATE code=VALUES(code), updated_at=VALUES(updated_at)";
+            mysqli_query($mysqli, $sql);
+        }
+    }
+
+    $save_msg = 'Keterangan absen disimpan.';
+    echo "<script>alert('✅ {$save_msg}'); window.location.href='?page=attends';</script>";
+    exit;
+}
+
 // Ambil data user dari mesin fingerprint
 $users = getUsers($ip, $port, $key);
 
@@ -153,6 +185,8 @@ foreach ($database_users as $row) {
             const checkboxes = document.querySelectorAll('input[name="selected_users[]"]:not(.hidden):not(:disabled)');
             checkboxes.forEach(checkbox => checkbox.checked = source.checked);
             updateSelectedCount();
+            // update bulk button state when select-all used
+            if (typeof updateBulkButtonState === 'function') updateBulkButtonState();
         }
 
         function validateForm() {
@@ -188,45 +222,6 @@ foreach ($database_users as $row) {
             return true; // Ini penting! Harus return true agar form bisa submit
         }
 
-        function validateAddUsers() {
-            const machineOnlyCheckboxes = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)');
-            const selectedMachineOnly = Array.from(machineOnlyCheckboxes).filter(checkbox => {
-                return checkbox.closest('tr').classList.contains('machine-only');
-            });
-
-            if (selectedMachineOnly.length === 0) {
-                alert('⚠️ Pilih minimal satu user yang hanya ada di mesin (baris hijau) untuk ditambahkan ke database!');
-                return false;
-            }
-
-            // Buat hidden inputs untuk data user yang dipilih
-            const form = document.getElementById('absenForm');
-
-            // Hapus hidden inputs yang lama jika ada
-            const oldInputs = form.querySelectorAll('input[name^="user_data"]');
-            oldInputs.forEach(input => input.remove());
-
-            // Tambahkan data user yang dipilih
-            selectedMachineOnly.forEach((checkbox, index) => {
-                const row = checkbox.closest('tr');
-                const pin = checkbox.value;
-                const namaMesin = row.cells[3].textContent.trim();
-
-                // Buat hidden inputs untuk pin dan nama
-                const pinInput = document.createElement('input');
-                pinInput.type = 'hidden';
-                pinInput.name = `user_data[${index}][pin]`;
-                pinInput.value = pin;
-                form.appendChild(pinInput);
-
-                const namaInput = document.createElement('input');
-                namaInput.type = 'hidden';
-                namaInput.name = `user_data[${index}][nama]`;
-                namaInput.value = namaMesin;
-                form.appendChild(namaInput);
-            });
-        }
-
         function showLoading() {
             const submitBtn = document.getElementById('submitBtn');
             const loadingText = document.getElementById('loadingText');
@@ -253,27 +248,32 @@ foreach ($database_users as $row) {
             loadingText.classList.remove('show');
         }
 
-        // Tambahkan variabel global
-        let currentBagian = 'all';
-        let currentTL = 'all';
+    // Tambahkan variabel global
+    let currentBagian = 'all';
+    let currentTL = 'all';
+    // resolved header index for 'Bagian' column (computed on DOM ready)
+    let bagianIndex = null;
 
         // Update fungsi searchAndFilter
         function searchAndFilter() {
-            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const searchInput = (document.getElementById('searchInput').value || '').toLowerCase();
             const tableRows = document.querySelectorAll('tbody tr');
             let visibleCount = 0;
 
             tableRows.forEach(row => {
-                const bagianCell = (row.cells[10] && row.cells[10].textContent) ? row.cells[10].textContent.toLowerCase() : '';
+                // Resolve bagian cell using the computed bagianIndex (robust to column order changes)
+                const bagianCell = (typeof bagianIndex === 'number' && row.cells[bagianIndex] && row.cells[bagianIndex].textContent)
+                    ? row.cells[bagianIndex].textContent.toLowerCase()
+                    : '';
                 const matchBagian = currentBagian === 'all' || bagianCell === currentBagian.toLowerCase();
 
                 // Use data attribute for tl id matching (more reliable than comparing names)
                 const tlId = row.dataset.tlId ? String(row.dataset.tlId) : '';
                 const matchTL = currentTL === 'all' || tlId === String(currentTL);
 
-                // Existing search logic
-                const matchSearch = Array.from(row.cells).some(cell =>
-                    cell.textContent.toLowerCase().includes(searchInput)
+                // Existing search logic: check all visible cells
+                const matchSearch = searchInput === '' || Array.from(row.cells).some(cell =>
+                    (cell.textContent || '').toLowerCase().includes(searchInput)
                 );
 
                 // Check filter criteria
@@ -298,7 +298,8 @@ foreach ($database_users as $row) {
             });
 
             document.getElementById('userCount').textContent = visibleCount;
-            document.querySelector('input[onchange="toggleAll(this)"]').checked = false;
+            const selAll = document.querySelector('input[onchange="toggleAll(this)"]');
+            if (selAll) selAll.checked = false;
             updateSelectedCount();
         }
 
@@ -316,50 +317,7 @@ foreach ($database_users as $row) {
             currentFilter = filter;
             searchAndFilter();
         }
-
-        function updateSelectedCount() {
-            const selectedCount = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)').length;
-            const selectedCountElement = document.getElementById('selectedCount');
-            if (selectedCountElement) {
-                selectedCountElement.textContent = selectedCount;
-            }
-
-            // Update tombol tambah user berdasarkan selection
-            updateAddUserButton();
-        }
-
-        function updateAddUserButton() {
-            const addUserBtn = document.getElementById('addUserBtn');
-            const machineOnlyCheckboxes = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)');
-            const selectedMachineOnly = Array.from(machineOnlyCheckboxes).filter(checkbox => {
-                return checkbox.closest('tr').classList.contains('machine-only');
-            });
-
-            if (selectedMachineOnly.length > 0) {
-                addUserBtn.disabled = false;
-                addUserBtn.innerHTML = `<span class="emoji">👤➕</span> Tambah ${selectedMachineOnly.length} User ke Database`;
-
-                // Highlight selected machine-only rows
-                document.querySelectorAll('.machine-only').forEach(row => {
-                    const checkbox = row.querySelector('input[name="selected_users[]"]');
-                    if (checkbox && checkbox.checked && !checkbox.classList.contains('hidden')) {
-                        row.classList.add('machine-only-highlight');
-                    } else {
-                        row.classList.remove('machine-only-highlight');
-                    }
-                });
-            } else {
-                addUserBtn.disabled = true;
-                addUserBtn.innerHTML = '<span class="emoji">👤➕</span> Tambah User ke Database';
-
-                // Remove all highlights
-                document.querySelectorAll('.machine-only-highlight').forEach(row => {
-                    row.classList.remove('machine-only-highlight');
-                });
-            }
-        }
-
-        // Event listeners
+      // Event listeners
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('searchInput').addEventListener('input', searchAndFilter);
 
@@ -367,6 +325,23 @@ foreach ($database_users as $row) {
             document.querySelectorAll('input[name="selected_users[]"]').forEach(checkbox => {
                 checkbox.addEventListener('change', updateSelectedCount);
             });
+
+            // Resolve header index for 'Bagian' so search/filter uses correct column
+            try {
+                const ths = document.querySelectorAll('table thead th');
+                for (let i = 0; i < ths.length; i++) {
+                    const txt = (ths[i].textContent || '').trim().toLowerCase();
+                    if (txt.includes('bagian')) {
+                        bagianIndex = i;
+                        break;
+                    }
+                }
+            } catch (e) {
+                bagianIndex = null;
+            }
+
+            // Run initial filter to apply defaults and update counts
+            searchAndFilter();
 
             // Wire up date display -> hidden date input behavior
             const startDateInput = document.getElementById('startDate');
@@ -475,7 +450,7 @@ foreach ($database_users as $row) {
 
 <body>
     <h2>👥 Data User Fingerprint & Database</h2>
-    <form method="POST" action="?page=users-detail" onsubmit="return validateForm()" id="absenForm">
+    <form method="POST" action="?page=detail-attends" onsubmit="return validateForm()" id="absenForm">
         <div class="main-container">
             <!-- Stats Section -->
             <div class="stats-wrapper">
@@ -546,7 +521,7 @@ foreach ($database_users as $row) {
                 <div class="d-flex align-items-center gap-2">
                     <label>
                         <input type="checkbox" onchange="toggleAll(this)">
-                        <strong>Pilih Semua User Aktif (yang terlihat)</strong>
+
                     </label>
                     <div class="small-legend">
                         <div class="legend-item">
@@ -561,13 +536,7 @@ foreach ($database_users as $row) {
                         <?php endif; ?>
                     </div>
                 </div>
-                <!-- Ganti div filter-buttons dengan kode berikut -->
-                <div class="filter-dropdown">
-                    <select class="filter-select" onchange="setFilter(this.value)">
-                        <option value="all">👥 Semua User</option>
-                        <option value="machine">🖥️ Hanya di Mesin</option>
-                    </select>
-                </div>
+
                 <div class="filter-dropdown">
                     <select class="filter-select" id="bagianFilter" onchange="filterByBagian(this.value)">
                         <option value="all">🏢 Semua Bagian</option>
@@ -649,13 +618,11 @@ foreach ($database_users as $row) {
                         </optgroup>
                     </select>
                 </div>
-                <!-- Ganti button add user yang lama dengan yang baru -->
+                <!-- Bulk Add S/I/A button (enabled only for DB users) -->
                 <div class="action-buttons">
-                    <button type="submit" name="addUserBtn" value="1" id="addUserBtn" class="btn-secondary"
-                        onclick="return validateAddUsers()" formaction="?page=users-add" disabled>
-                        <span class="emoji">👤</span>
-                        <span class="button-text">Tambah ke Database</span>
-                        <div class="spinner" style="display: none;"></div>
+                    <button type="button" id="addNoteBtn" class="btn-secondary" disabled onclick="openBulkNoteModal()">
+                        <span class="emoji">�</span>
+                        <span class="button-text">Tambah S/I/A</span>
                     </button>
                 </div>
             </div>
@@ -667,9 +634,7 @@ foreach ($database_users as $row) {
                 <thead>
                     <tr>
                         <th class="checkbox-col">✓</th>
-                        <th>ID</th>
                         <th class="pin-col">PIN</th>
-                        <th>Nama (Mesin)</th>
                         <th>Nama (Database)</th>
                         <th>NIP</th>
                         <th>NIK</th>
@@ -687,19 +652,17 @@ foreach ($database_users as $row) {
                             data-status="<?= $user['in_machine'] && $user['in_database'] ? 'both' : ($user['in_machine'] ? 'machine' : 'database') ?>"
                             data-tl-id="<?= htmlspecialchars($user['tl_id'] ?? '') ?>">
                             <td class="checkbox-col">
-                                <?php if ($user['in_machine'] && !$user['is_resign']): ?>
-                                    <input type="checkbox" name="selected_users[]" value="<?= htmlspecialchars($user['pin']) ?>"
-                                        class="user-checkbox <?= !$user['in_database'] ? 'add-user' : '' ?>">
+                                <?php if ($user['in_database'] && !$user['is_resign']): ?>
+                                    <input type="checkbox" name ="selected_users[]" value="<?= htmlspecialchars($user['pin']) ?>"
+                                        class="user-checkbox <?= !$user['in_machine'] ? 'db-only' : '' ?>">
                                 <?php elseif ($user['is_resign']): ?>
-                                    <input type="checkbox" name="selected_users[]" value="<?= htmlspecialchars($user['pin']) ?>"
-                                        class="user-checkbox" disabled title="User dengan status RESIGN tidak dapat dipilih">
+                                    <input type="checkbox" name="selected_users[]" value="<?= htmlspecialchars($user['pin'])?>"
+                                       class="user-checkbox" disabled title="User dengan status RESIGN tidak dapat dipilih">
                                 <?php else: ?>
                                     <span style="color: #ccc;">-</span>
                                 <?php endif; ?>
                             </td>
-                            <td><?= htmlspecialchars($user['id'] ?? '-') ?></td>
                             <td class="pin-col"><?= htmlspecialchars($user['pin']) ?></td>
-                            <td><?= htmlspecialchars($user['nama_mesin']) ?></td>
                             <td><?= htmlspecialchars($user['nama_db']) ?><?= $user['is_resign'] ? ' <small>(RESIGN)</small>' : '' ?>
                             </td>
                             <td style="<?= $user['is_resign'] ? 'font-weight: bold;' : '' ?>">
@@ -722,3 +685,199 @@ foreach ($database_users as $row) {
 </body>
 
 </html>
+
+<!-- Row-level modal for single-pin absence note -->
+<div id="rowNoteModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); align-items:center; justify-content:center; z-index:9999;">
+    <div style="background:#fff; padding:18px; border-radius:10px; width:420px; max-width:95%; box-shadow:0 8px 30px rgba(2,6,23,0.3); margin:auto;">
+        <h3 style="margin:0 0 10px 0;">Tambah Keterangan Absensi</h3>
+        <form id="rowNoteForm" method="POST" action="?page=attends">
+            <input type="hidden" name="save_notes" value="1">
+            <div style="margin-bottom:10px;">
+                <label style="display:block; font-weight:600; margin-bottom:6px;">Tanggal</label>
+                <input type="date" id="rowNoteDate" class="form-control" value="<?= date('Y-m-d') ?>" required>
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="display:block; font-weight:600; margin-bottom:6px;">Kode</label>
+                <select id="rowNoteCode" class="form-control" required>
+                    <option value="">Pilih kode...</option>
+                    <option value="S">S - Sakit</option>
+                    <option value="I">I - Izin</option>
+                    <option value="A">A - Alfa</option>
+                </select>
+            </div>
+            <div id="rowNoteInfo" style="font-size:13px;color:#444;margin-bottom:12px;"></div>
+            <div style="display:flex; gap:8px; justify-content:flex-end">
+                <button type="button" onclick="closeRowNoteModal()" class="cancel-link">Batal</button>
+                <button type="button" class="btn-primary" onclick="submitRowNote()">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentRowPin = null;
+
+    document.addEventListener('click', function (e) {
+        if (e.target && e.target.classList.contains('row-aksi-btn')) {
+            const pin = e.target.dataset.pin;
+            openRowNoteModal(pin);
+        }
+    });
+
+    function openRowNoteModal(pin) {
+        currentRowPin = pin;
+        const modal = document.getElementById('rowNoteModal');
+        const dateInput = document.getElementById('rowNoteDate');
+        const codeSelect = document.getElementById('rowNoteCode');
+        const info = document.getElementById('rowNoteInfo');
+        dateInput.value = new Date().toISOString().slice(0,10);
+        codeSelect.value = '';
+        info.textContent = `Menambah keterangan untuk PIN: ${pin}`;
+        modal.style.display = 'flex';
+    }
+
+    function closeRowNoteModal() {
+        currentRowPin = null;
+        document.getElementById('rowNoteModal').style.display = 'none';
+    }
+
+    function submitRowNote() {
+        const dateInput = document.getElementById('rowNoteDate');
+        const codeSelect = document.getElementById('rowNoteCode');
+        if (!currentRowPin) return alert('Tidak ada PIN terpilih');
+        if (!dateInput.value || !codeSelect.value) return alert('Lengkapi tanggal dan kode.');
+
+        // Build a temporary form to submit absence_notes[PIN][DATE]=CODE
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '?page=attends';
+
+        const saveInput = document.createElement('input');
+        saveInput.type = 'hidden';
+        saveInput.name = 'save_notes';
+        saveInput.value = '1';
+        form.appendChild(saveInput);
+
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = `absence_notes[${currentRowPin}][${dateInput.value}]`;
+        hidden.value = codeSelect.value;
+        form.appendChild(hidden);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Bulk helpers
+    function updateSelectedCount() {
+        const checked = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden):not(:disabled)');
+        document.getElementById('selectedCount').textContent = checked.length;
+        updateBulkButtonState();
+    }
+
+    function updateBulkButtonState() {
+        const btn = document.getElementById('addNoteBtn');
+        if (!btn) return;
+        const has = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden):not(:disabled)').length > 0;
+        btn.disabled = !has;
+    }
+
+    function openBulkNoteModal() {
+        const checkedEls = Array.from(document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden):not(:disabled)'));
+        if (checkedEls.length === 0) {
+            alert('Pilih minimal satu user untuk menambah S/I/A');
+            return;
+        }
+        const pins = checkedEls.map(c => c.value);
+
+        // Create a simple modal (reusable)
+        let modal = document.getElementById('bulkNoteModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'bulkNoteModal';
+            modal.style = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); align-items:center; justify-content:center; z-index:9999;';
+            modal.innerHTML = `
+                <div style="background:#fff; padding:18px; border-radius:10px; width:520px; max-width:95%; box-shadow:0 8px 30px rgba(2,6,23,0.3); margin:auto;">
+                    <h3 style="margin:0 0 10px 0;">Tambah Keterangan Absensi (Bulk)</h3>
+                    <form id="bulkNoteForm" method="POST" action="?page=attends">
+                        <input type="hidden" name="save_notes" value="1">
+                        <div style="margin-bottom:10px;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px;">Tanggal</label>
+                            <input type="date" id="bulkNoteDate" class="form-control" value="` + new Date().toISOString().slice(0,10) + `" required>
+                        </div>
+                        <div style="margin-bottom:10px;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px;">Kode</label>
+                            <select id="bulkNoteCode" name="_bulk_code" class="form-control" required>
+                                <option value="">Pilih kode...</option>
+                                <option value="S">S - Sakit</option>
+                                <option value="I">I - Izin</option>
+                                <option value="A">A - Alfa</option>
+                            </select>
+                        </div>
+                        <div id="bulkNotePins" style="font-size:13px;color:#444;margin-bottom:12px; max-height:120px; overflow:auto;"></div>
+                        <div style="display:flex; gap:8px; justify-content:flex-end">
+                            <button type="button" onclick="closeBulkNoteModal()" class="cancel-link">Batal</button>
+                            <button type="button" class="btn-primary" onclick="submitBulkNote()">Simpan</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // Populate pins list
+        const pinsContainer = modal.querySelector('#bulkNotePins');
+        pinsContainer.innerHTML = `<strong>Menambah keterangan untuk ${pins.length} user:</strong><br>` + pins.map(p => `<code style="display:inline-block;margin:4px;padding:4px 8px;background:#f4f4f4;border-radius:6px">${p}</code>`).join(' ');
+
+        modal.style.display = 'flex';
+        modal.dataset.pins = JSON.stringify(pins);
+    }
+
+    function closeBulkNoteModal() {
+        const modal = document.getElementById('bulkNoteModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    function submitBulkNote() {
+        const modal = document.getElementById('bulkNoteModal');
+        if (!modal) return;
+        const pins = JSON.parse(modal.dataset.pins || '[]');
+        const dateInput = document.getElementById('bulkNoteDate');
+        const codeSelect = document.getElementById('bulkNoteCode');
+        if (!dateInput.value || !codeSelect.value) return alert('Lengkapi tanggal dan kode.');
+
+        // Build form and submit absence_notes[PIN][DATE]=CODE for each pin
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '?page=attends';
+
+        const saveInput = document.createElement('input');
+        saveInput.type = 'hidden';
+        saveInput.name = 'save_notes';
+        saveInput.value = '1';
+        form.appendChild(saveInput);
+
+        pins.forEach(pin => {
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = `absence_notes[${pin}][${dateInput.value}]`;
+            hidden.value = codeSelect.value;
+            form.appendChild(hidden);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Ensure checkbox change events update counts
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.matches('input[name="selected_users[]"]')) {
+            updateSelectedCount();
+        }
+    });
+
+    // Initialize selected count on load
+    document.addEventListener('DOMContentLoaded', function () {
+        updateSelectedCount();
+    });
+</script>
