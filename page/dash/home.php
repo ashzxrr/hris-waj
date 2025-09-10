@@ -28,12 +28,14 @@ try {
     $result = $mysqli->query($query);
     $total_users = $result->fetch_assoc()['total'];
 
+
     // Active Users
     $query = "SELECT COUNT(*) as total FROM users WHERE status = 'active'";
     $result = $mysqli->query($query);
     $active_users = $result->fetch_assoc()['total'];
 
-} catch(Exception $e) {
+
+} catch (Exception $e) {
     error_log($e->getMessage());
 }
 ?>
@@ -41,8 +43,8 @@ try {
     .content-wrapper {
         background: #ffffff;
         border-radius: 8px;
-        box-shadow: 
-            0 0 0 1px rgba(63, 63, 68, 0.05), 
+        box-shadow:
+            0 0 0 1px rgba(63, 63, 68, 0.05),
             0 1px 3px 0 rgba(34, 33, 81, 0.15);
         padding: 2.5rem;
         margin-top: 40px;
@@ -50,11 +52,11 @@ try {
         width: 100%;
         position: relative;
         min-height: calc(100vh - 180px);
-        background-image: 
-            linear-gradient(rgba(255,255,255,.8) 2px, transparent 2px),
-            linear-gradient(90deg, rgba(255,255,255,.8) 2px, transparent 2px),
-            linear-gradient(rgba(0,0,0,.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,0,0,.05) 1px, transparent 1px);
+        background-image:
+            linear-gradient(rgba(255, 255, 255, .8) 2px, transparent 2px),
+            linear-gradient(90deg, rgba(255, 255, 255, .8) 2px, transparent 2px),
+            linear-gradient(rgba(0, 0, 0, .05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, .05) 1px, transparent 1px);
         background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
         background-position: -2px -2px, -2px -2px, -1px -1px, -1px -1px;
     }
@@ -126,7 +128,7 @@ try {
 
     .hover-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     }
 
     .card {
@@ -168,15 +170,17 @@ try {
         .col-md-3 {
             max-width: 100%;
         }
+
         .card {
             padding: 1.2rem !important;
         }
+
         .value-text {
             font-size: 1.5rem;
         }
     }
 
-     .page-loader {
+    .page-loader {
         position: fixed;
         top: 0;
         left: 0;
@@ -187,7 +191,7 @@ try {
         opacity: 1;
         transition: opacity 0.5s ease-out;
     }
-    
+
     .page-loader.fade-out {
         opacity: 0;
     }
@@ -197,48 +201,48 @@ try {
     <div class="container">
         <div class="content-wrapper">
             <div class="row justify-content-start g-4">
-                
+
                 <!-- Card 1 -->
                 <div class="col-md-3 col-sm-6 mb-4">
                     <a href="?page=users" class="text-decoration-none">
-                    <div class="card hover-card">
-                        <div class="card-body">
-                            <i class="fa-solid fa-users card-icon"></i>
-                            <div class="card-content">
-                                <div class="value-text">Karyawan</div>
-                                <div class="value-text"><?= number_format($total_users, 0, ',', '.') ?></div>
+                        <div class="card hover-card">
+                            <div class="card-body">
+                                <i class="fa-solid fa-users card-icon"></i>
+                                <div class="card-content">
+                                    <div class="value-text">Karyawan</div>
+                                    <div class="value-text"><?= number_format($total_users, 0, ',', '.') ?></div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    </a>    
+                    </a>
                 </div>
 
                 <div class="col-md-3 col-sm-6 mb-4">
                     <a href="?page=attends" class="text-decoration-none">
-                    <div class="card hover-card">
-                        <div class="card-body">
-                            <i class="fa-solid fa-money-bill-wave text-success"></i>
-                            <div class="card-content">
-                                <div class="value-text">Attendance</div>
-                                <div class="value-text"><?= number_format($total_users, 0, ',', '.') ?></div>
+                        <div class="card hover-card">
+                            <div class="card-body">
+                                <i class="fa-solid fa-calendar-check fa-1x text-secondary"></i>
+                                <div class="card-content">
+                                    <div class="value-text">Attendance</div>
+                                    <div class="value-text"><?= number_format($total_attends ?? 0, 0, ',', '.') ?></div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    </a>    
+                    </a>
                 </div>
 
                 <div class="col-md-3 col-sm-6 mb-4">
                     <a href="?page=payroll" class="text-decoration-none">
-                    <div class="card hover-card">
-                        <div class="card-body">
-                            <i class="fa-solid fa-money-bill-wave text-success"></i>
-                            <div class="card-content">
-                                <div class="value-text">Payroll</div>
-                                <div class="value-text"><?= number_format($total_users, 0, ',', '.') ?></div>
+                        <div class="card hover-card">
+                            <div class="card-body">
+                                <i class="fa-solid fa-money-bill-wave text-success"></i>
+                                <div class="card-content">
+                                    <div class="value-text">Payroll</div>
+                                    <div class="value-text"><?= number_format($total_users, 0, ',', '.') ?></div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    </a>    
+                    </a>
                 </div>
 
                 <!-- Card 2 -->
