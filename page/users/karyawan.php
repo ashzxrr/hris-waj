@@ -136,7 +136,378 @@ foreach ($database_users as $row) {
     <link rel="stylesheet" href="assets/css/style-user.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <title>Data User Fingerprint & Database</title>
+    <style>
+        /* Style untuk baris RESIGN */
+        .user-row.resign {
+            background-color: #ffe6e6 !important;
+            color: #cc0000;
+        }
+
+        .user-row.resign:hover {
+            background-color: #ffcccc !important;
+        }
+
+        .user-row.resign td {
+            border-color: #ffb3b3;
+        }
+
+        /* Style untuk checkbox yang disabled pada user resign */
+        .user-row.resign input[type="checkbox"] {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Update legend untuk menambah info resign */
+        .resign-legend {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #cc0000;
+        }
+
+        .legend-color.legend-resign {
+            width: 12px;
+            height: 12px;
+            background-color: #ffe6e6;
+            border: 1px solid #cc0000;
+            border-radius: 2px;
+        }
+
+        .stats-container .stat-box.resign {
+            background: linear-gradient(135deg, #ffe6e6, #ffcccc);
+            color: #cc0000;
+            border: 1px solid #ffb3b3;
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Style untuk highlight user yang hanya ada di mesin */
+        .user-row.machine-only-highlight {
+            background-color: #e8f5e8 !important;
+            border-left: 4px solid #28a745;
+        }
+
+        .user-row.machine-only-highlight:hover {
+            background-color: #d4edda !important;
+        }
+
+        /* Update checkbox styling untuk user yang bisa ditambahkan */
+        .user-row.machine-only input[type="checkbox"].add-user {
+            accent-color: #28a745;
+        }
+
+        .select-all {
+            background-color: #f8fafc;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .select-all .d-flex {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .small-legend {
+            display: flex;
+            gap: 15px;
+            margin-left: 15px;
+        }
+
+        /* Update button style untuk konsistensi dengan layout baru */
+        .btn-secondary {
+            padding: 6px 15px;
+            height: 32px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        /* Style untuk filter buttons yang selaras */
+        .filter-buttons {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .filter-btn {
+            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+            color: #475569;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #45caff, #5c9dff);
+            color: white;
+            box-shadow: 0 2px 8px rgba(69, 202, 255, 0.3);
+        }
+
+        .filter-btn.active:hover {
+            background: linear-gradient(135deg, #5c9dff, #45caff);
+        }
+
+        .filter-btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary,
+        .btn-secondary,
+        .date-btn,
+        .filter-btn {
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+        }
+
+        .filter-dropdown {
+            position: relative;
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 10px 16px;
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        .filter-select:hover {
+            background: #cbd5e1;
+            border-color: #94a3b8;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(69, 202, 255, 0.3);
+        }
+
+        .filter-dropdown::after {
+            content: '▼';
+            font-size: 0.7rem;
+            color: #475569;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        .filter-container {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            min-width: 200px;
+        }
+
+        .filter-select optgroup {
+            font-weight: 600;
+            color: #64748b;
+            background: white;
+        }
+
+        .filter-select option {
+            padding: 4px 8px;
+            color: #475569;
+        }
+
+        .filter-select {
+            height: 32px;
+            padding: 0 35px 0 15px;
+            min-width: 180px;
+        }
+
+        /* Tambahkan CSS berikut di dalam tag <style> */
+        .action-buttons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            height: 32px;
+            padding: 0 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin: 0;
+            /* Reset margin */
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(52, 211, 153, 0.3);
+            background: linear-gradient(135deg, #059669 0%, #34d399 100%);
+        }
+
+        .btn-secondary:disabled {
+            background: linear-gradient(135deg, #9ca3af, #d1d5db);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary .emoji {
+            font-size: 14px;
+        }
+
+        /* Tambahkan/update CSS berikut */
+        .top-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+
+        .date-container {
+            min-width: 300px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-box {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px;
+        }
+
+        /* Tambahkan/update CSS berikut */
+        .main-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stats-wrapper {
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+            max-width: 400px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 12px;
+        }
+
+        .stat-box {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 6px 8px;
+            text-align: center;
+            flex: 1;
+            min-width: 70px;
+        }
+
+        .stat-box.resign {
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .stat-icon {
+            font-size: 14px;
+            margin-bottom: 2px;
+            opacity: 0.7;
+        }
+
+        .stat-number {
+            font-size: 16px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 1px;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            font-weight: 500;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin: 0;
+        }
+
+        .stat-box.resign .stat-number {
+            color: #dc2626;
+        }
+
+        .stat-box.resign .stat-label {
+            color: #b91c1c;
+        }
+
+        .period-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Update form style */
+        #absenForm {
+            width: 100%;
+        }
+
+        /* Fix date container */
+        .date-container {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+    </style>
     <script>
+
         let currentFilter = 'all';
         document.addEventListener('DOMContentLoaded', function () {
             <?php if (isset($_SESSION['login_warning'])): ?>
@@ -166,7 +537,7 @@ foreach ($database_users as $row) {
             return true;
         }
 
-    function validateAddUsers() {
+        function validateAddUsers() {
             const machineOnlyCheckboxes = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)');
             const selectedMachineOnly = Array.from(machineOnlyCheckboxes).filter(checkbox => {
                 return checkbox.closest('tr').classList.contains('machine-only');
@@ -205,7 +576,7 @@ foreach ($database_users as $row) {
             });
         }
 
-    // showLoading / hideLoading removed (attendance submission UI not needed on employee-only page)
+        // showLoading / hideLoading removed (attendance submission UI not needed on employee-only page)
 
         // Tambahkan variabel global
         let currentBagian = 'all';
@@ -250,59 +621,59 @@ foreach ($database_users as $row) {
                     }
                 }
 
-                    function validateEditUsers() {
-                        const checked = Array.from(document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)'));
-                        const dbSelected = checked.filter(cb => !cb.closest('tr').classList.contains('machine-only'));
+                function validateEditUsers() {
+                    const checked = Array.from(document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)'));
+                    const dbSelected = checked.filter(cb => !cb.closest('tr').classList.contains('machine-only'));
 
-                        if (dbSelected.length === 0) {
-                            alert('⚠️ Pilih minimal satu user yang sudah ada di database untuk diedit.');
-                            return false;
-                        }
-
-                        const form = document.getElementById('absenForm');
-                        // remove old user_data inputs
-                        const old = form.querySelectorAll('input[name^="user_data"]');
-                        old.forEach(i => i.remove());
-
-                        dbSelected.forEach((cb, idx) => {
-                            const tr = cb.closest('tr');
-                            const pin = cb.value;
-                            // create hidden input user_data[idx][pin]
-                            const inpPin = document.createElement('input');
-                            inpPin.type = 'hidden';
-                            inpPin.name = `user_data[${idx}][pin]`;
-                            inpPin.value = pin;
-                            form.appendChild(inpPin);
-
-                            // Robustly find the NIP cell by header name (fallback to index 5)
-                            let nipVal = '';
-                            try {
-                                let nipIndex = -1;
-                                const thead = document.querySelector('table thead');
-                                if (thead) {
-                                    const ths = thead.querySelectorAll('th');
-                                    ths.forEach((th, i) => {
-                                        if (th.textContent.trim().toLowerCase() === 'nip') nipIndex = i;
-                                    });
-                                }
-                                if (nipIndex === -1) nipIndex = 5; // legacy fallback
-                                const nipCell = tr.cells[nipIndex];
-                                if (nipCell) nipVal = nipCell.textContent.trim();
-                            } catch (e) {
-                                nipVal = '';
-                            }
-                            // normalize placeholder values
-                            if (nipVal === '-' || nipVal === '') nipVal = '';
-                            const inpNip = document.createElement('input');
-                            inpNip.type = 'hidden';
-                            inpNip.name = `user_data[${idx}][nip]`;
-                            inpNip.value = nipVal;
-                            form.appendChild(inpNip);
-                        });
-
-                        // allow form to submit to edit page
-                        return true;
+                    if (dbSelected.length === 0) {
+                        alert('⚠️ Pilih minimal satu user yang sudah ada di database untuk diedit.');
+                        return false;
                     }
+
+                    const form = document.getElementById('absenForm');
+                    // remove old user_data inputs
+                    const old = form.querySelectorAll('input[name^="user_data"]');
+                    old.forEach(i => i.remove());
+
+                    dbSelected.forEach((cb, idx) => {
+                        const tr = cb.closest('tr');
+                        const pin = cb.value;
+                        // create hidden input user_data[idx][pin]
+                        const inpPin = document.createElement('input');
+                        inpPin.type = 'hidden';
+                        inpPin.name = `user_data[${idx}][pin]`;
+                        inpPin.value = pin;
+                        form.appendChild(inpPin);
+
+                        // Robustly find the NIP cell by header name (fallback to index 5)
+                        let nipVal = '';
+                        try {
+                            let nipIndex = -1;
+                            const thead = document.querySelector('table thead');
+                            if (thead) {
+                                const ths = thead.querySelectorAll('th');
+                                ths.forEach((th, i) => {
+                                    if (th.textContent.trim().toLowerCase() === 'nip') nipIndex = i;
+                                });
+                            }
+                            if (nipIndex === -1) nipIndex = 5; // legacy fallback
+                            const nipCell = tr.cells[nipIndex];
+                            if (nipCell) nipVal = nipCell.textContent.trim();
+                        } catch (e) {
+                            nipVal = '';
+                        }
+                        // normalize placeholder values
+                        if (nipVal === '-' || nipVal === '') nipVal = '';
+                        const inpNip = document.createElement('input');
+                        inpNip.type = 'hidden';
+                        inpNip.name = `user_data[${idx}][nip]`;
+                        inpNip.value = nipVal;
+                        form.appendChild(inpNip);
+                    });
+
+                    // allow form to submit to edit page
+                    return true;
+                }
             });
 
             document.getElementById('userCount').textContent = visibleCount;
@@ -396,7 +767,7 @@ foreach ($database_users as $row) {
             // Date/attendance UI removed for employee-only page
         });
 
-    // Date helpers removed
+        // Date helpers removed
     </script>
 </head>
 
@@ -432,39 +803,9 @@ foreach ($database_users as $row) {
                 <?php endif; ?>
             </div>
 
-            <div class="search-container">
-                <div>
-                    <label>🔍 Cari: </label>
-                    <input type="text" id="searchInput" class="search-input"
-                        placeholder="Ketik PIN, Nama, NIP, atau Bagian..." />
-                </div>
-                <div style="color: #666; font-size: 12px;">
-                    <span id="userCount"><?= count($combined_users) ?></span> user ditampilkan |
-                    <span id="selectedCount">0</span> dipilih
-                </div>
-            </div>
-        </div>
 
-        <div class="select-all">
-            <div class="d-flex align-items-center gap-2" style="justify-content: space-between">
-                <div class="d-flex align-items-center gap-2">
-                    <label>
-                        <input type="checkbox" onchange="toggleAll(this)">
-                    </label>
-                    <div class="small-legend">
-                        <div class="legend-item">
-                            <div class="legend-color legend-machine-only"></div>
-                            <span>Tambahkan</span>
-                        </div>
-                        <?php if ($resign_count > 0): ?>
-                            <div class="legend-item resign-legend">
-                                <div class="legend-color legend-resign"></div>
-                                <span>User Resign</span>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <!-- Ganti div filter-buttons dengan kode berikut -->
+            <!-- Filters grouped with search -->
+            <div class="filters-group" style="display:flex;gap:8px;align-items:center;margin:8px 0;flex-wrap:wrap">
                 <div class="filter-dropdown">
                     <select class="filter-select" onchange="setFilter(this.value)">
                         <option value="all">👥 Semua User</option>
@@ -552,6 +893,41 @@ foreach ($database_users as $row) {
                         </optgroup>
                     </select>
                 </div>
+            </div>
+
+            <div class="search-container">
+                <div>
+                    <input type="text" id="searchInput" class="search-input"
+                        placeholder=" 🔍 Ketik PIN, Nama, NIP, atau Bagian..." />
+                </div>
+                <div style="color: #666; font-size: 12px;">
+                    <span id="userCount"><?= count($combined_users) ?></span> user ditampilkan |
+                    <span id="selectedCount">0</span> dipilih
+                </div>
+            </div>
+        </div>
+
+        <div class="select-all">
+            <div class="d-flex align-items-center gap-2" style="justify-content: space-between">
+                <div class="d-flex align-items-center gap-2">
+                    <label>
+                        <input type="checkbox" onchange="toggleAll(this)">
+                    </label>
+                    <div class="small-legend">
+                        <div class="legend-item">
+                            <div class="legend-color legend-machine-only"></div>
+                            <span>Tambahkan</span>
+                        </div>
+                        <?php if ($resign_count > 0): ?>
+                            <div class="legend-item resign-legend">
+                                <div class="legend-color legend-resign"></div>
+                                <span>User Resign</span>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <!-- Ganti div filter-buttons dengan kode berikut -->
+
                 <!-- Ganti button add user yang lama dengan yang baru -->
                 <div class="action-buttons">
                     <button type="submit" name="addUserBtn" value="1" id="addUserBtn" class="btn-secondary"
@@ -562,7 +938,8 @@ foreach ($database_users as $row) {
                     </button>
                     <!-- Edit existing database users (enabled only when selected users exist in database) -->
                     <button type="submit" name="editUserBtn" value="1" id="editUserBtn" class="btn-secondary"
-                        onclick="return validateEditUsers()" formaction="?page=edit-karyawan" disabled style="margin-left:8px;">
+                        onclick="return validateEditUsers()" formaction="?page=edit-karyawan" disabled
+                        style="margin-left:8px;">
                         <span class="emoji">✏️</span>
                         <span class="button-text">Edit User</span>
                     </button>

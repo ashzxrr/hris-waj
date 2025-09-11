@@ -52,8 +52,7 @@ $users = getUsers($ip, $port, $key);
 
 $database_users = [];
 $database_users_by_id = [];
-// Ambil semua data user dari database (termasuk yang NIP-nya RESIGN untuk styling)
-$query = "SELECT id, pin, tl_id, nip, nik, nama, jk, job_title, job_level, bagian, departemen FROM users ORDER BY CAST(pin AS UNSIGNED)";
+$query = "SELECT id, pin, tl_id, nip, nik, nama, jk, job_title, job_level, bagian, departemen, kategori_gaji FROM users ORDER BY CAST(pin AS UNSIGNED)";
 $result = mysqli_query($mysqli, $query);
 
 if ($result) {
@@ -84,6 +83,7 @@ foreach ($users as $pin => $name) {
         'job_title' => isset($database_users[$pin]) ? $database_users[$pin]['job_title'] : '-',
         'job_level' => isset($database_users[$pin]) ? $database_users[$pin]['job_level'] : '-',
         'bagian' => isset($database_users[$pin]) ? $database_users[$pin]['bagian'] : '-',
+        'kategori_gaji' => isset($database_users[$pin]) ? ($database_users[$pin]['kategori_gaji'] ?? '-') : '-',
         'departemen' => isset($database_users[$pin]) ? $database_users[$pin]['departemen'] : '-',
         'status' => isset($database_users[$pin]) ? 'Ada di Keduanya' : 'Hanya di Mesin',
         'in_machine' => true,
@@ -112,6 +112,7 @@ foreach ($database_users as $pin => $data) {
             'job_title' => $data['job_title'],
             'job_level' => $data['job_level'],
             'bagian' => $data['bagian'],
+            'kategori_gaji' => $data['kategori_gaji'] ?? '-',
             'departemen' => $data['departemen'],
             'status' => 'Hanya di Database',
             'in_machine' => false,
@@ -156,6 +157,29 @@ foreach ($database_users as $row) {
         }
     }
 }
+
+// Build unique kategori_gaji options (case-insensitive dedupe)
+$kategori_map = [];
+foreach ($database_users as $row) {
+    $k = trim($row['kategori_gaji'] ?? '');
+    if ($k === '') continue;
+    $key = mb_strtolower($k);
+    if (!isset($kategori_map[$key])) {
+        // preserve original casing from first occurrence
+        $kategori_map[$key] = $k;
+    }
+}
+
+// Ensure common categories exist (without duplicating)
+$extras = ['Borongan Cabut', 'Borongan Cetak', 'Harian', 'Bulanan'];
+foreach ($extras as $e) {
+    $ek = mb_strtolower(trim($e));
+    if ($ek === '') continue;
+    if (!isset($kategori_map[$ek])) $kategori_map[$ek] = $e;
+}
+
+// Sort by key (case-insensitive order)
+ksort($kategori_map);
 ?>
 
 <!DOCTYPE html>
@@ -168,8 +192,379 @@ foreach ($database_users as $row) {
     <link rel="stylesheet" href="assets/css/style-user.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <title>Data User Fingerprint & Database</title>
+    <style>
+        /* Style untuk baris RESIGN */
+        .user-row.resign {
+            background-color: #ffe6e6 !important;
+            color: #cc0000;
+        }
+
+        .user-row.resign:hover {
+            background-color: #ffcccc !important;
+        }
+
+        .user-row.resign td {
+            border-color: #ffb3b3;
+        }
+
+        /* Style untuk checkbox yang disabled pada user resign */
+        .user-row.resign input[type="checkbox"] {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Update legend untuk menambah info resign */
+        .resign-legend {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #cc0000;
+        }
+
+        .legend-color.legend-resign {
+            width: 12px;
+            height: 12px;
+            background-color: #ffe6e6;
+            border: 1px solid #cc0000;
+            border-radius: 2px;
+        }
+
+        .stats-container .stat-box.resign {
+            background: linear-gradient(135deg, #ffe6e6, #ffcccc);
+            color: #cc0000;
+            border: 1px solid #ffb3b3;
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Style untuk highlight user yang hanya ada di mesin */
+        .user-row.machine-only-highlight {
+            background-color: #e8f5e8 !important;
+            border-left: 4px solid #28a745;
+        }
+
+        .user-row.machine-only-highlight:hover {
+            background-color: #d4edda !important;
+        }
+
+        /* Update checkbox styling untuk user yang bisa ditambahkan */
+        .user-row.machine-only input[type="checkbox"].add-user {
+            accent-color: #28a745;
+        }
+
+        .select-all {
+            background-color: #f8fafc;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .select-all .d-flex {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .small-legend {
+            display: flex;
+            gap: 15px;
+            margin-left: 15px;
+        }
+
+        /* Update button style untuk konsistensi dengan layout baru */
+        .btn-secondary {
+            padding: 6px 15px;
+            height: 32px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        /* Style untuk filter buttons yang selaras */
+        .filter-buttons {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .filter-btn {
+            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+            color: #475569;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #45caff, #5c9dff);
+            color: white;
+            box-shadow: 0 2px 8px rgba(69, 202, 255, 0.3);
+        }
+
+        .filter-btn.active:hover {
+            background: linear-gradient(135deg, #5c9dff, #45caff);
+        }
+
+        .filter-btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary,
+        .btn-secondary,
+        .date-btn,
+        .filter-btn {
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+        }
+
+        .filter-dropdown {
+            position: relative;
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 10px 16px;
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        .filter-select:hover {
+            background: #cbd5e1;
+            border-color: #94a3b8;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(69, 202, 255, 0.3);
+        }
+
+        .filter-dropdown::after {
+            content: '▼';
+            font-size: 0.7rem;
+            color: #475569;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        .filter-container {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            min-width: 200px;
+        }
+
+        .filter-select optgroup {
+            font-weight: 600;
+            color: #64748b;
+            background: white;
+        }
+
+        .filter-select option {
+            padding: 4px 8px;
+            color: #475569;
+        }
+
+        .filter-select {
+            height: 32px;
+            padding: 0 35px 0 15px;
+            min-width: 180px;
+        }
+
+        /* Tambahkan CSS berikut di dalam tag <style> */
+        .action-buttons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            height: 32px;
+            padding: 0 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin: 0;
+            /* Reset margin */
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(52, 211, 153, 0.3);
+            background: linear-gradient(135deg, #059669 0%, #34d399 100%);
+        }
+
+        .btn-secondary:disabled {
+            background: linear-gradient(135deg, #9ca3af, #d1d5db);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary .emoji {
+            font-size: 14px;
+        }
+
+        /* Tambahkan/update CSS berikut */
+        .top-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+
+        .date-container {
+            min-width: 300px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-box {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px;
+        }
+
+        /* Tambahkan/update CSS berikut */
+        .main-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stats-wrapper {
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+            max-width: 400px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 12px;
+        }
+
+        .stat-box {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 6px 8px;
+            text-align: center;
+            flex: 1;
+            min-width: 70px;
+        }
+
+        .stat-box.resign {
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .stat-icon {
+            font-size: 14px;
+            margin-bottom: 2px;
+            opacity: 0.7;
+        }
+
+        .stat-number {
+            font-size: 16px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 1px;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            font-weight: 500;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin: 0;
+        }
+
+        .stat-box.resign .stat-number {
+            color: #dc2626;
+        }
+
+        .stat-box.resign .stat-label {
+            color: #b91c1c;
+        }
+
+        .period-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Update form style */
+        #absenForm {
+            width: 100%;
+        }
+
+        /* Fix date container */
+        .date-container {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+    </style>
     <script>
         let currentFilter = 'all';
+    let currentKategoriGaji = 'all';
         document.addEventListener('DOMContentLoaded', function () {
             <?php if (isset($_SESSION['login_warning'])): ?>
                 Swal.fire({
@@ -271,6 +666,10 @@ foreach ($database_users as $row) {
                 const tlId = row.dataset.tlId ? String(row.dataset.tlId) : '';
                 const matchTL = currentTL === 'all' || tlId === String(currentTL);
 
+                // Kategori gaji filter (uses data attribute set on the row)
+                const kategoriVal = row.dataset.kategoriGaji ? String(row.dataset.kategoriGaji).toLowerCase() : '';
+                const matchKategori = currentKategoriGaji === 'all' || kategoriVal === String(currentKategoriGaji).toLowerCase();
+
                 // Existing search logic: check all visible cells
                 const matchSearch = searchInput === '' || Array.from(row.cells).some(cell =>
                     (cell.textContent || '').toLowerCase().includes(searchInput)
@@ -280,7 +679,7 @@ foreach ($database_users as $row) {
                 const matchFilter = currentFilter === 'all' ||
                     (currentFilter === 'machine' && row.classList.contains('machine-only'));
 
-                if (matchSearch && matchFilter && matchBagian && matchTL) {
+                if (matchSearch && matchFilter && matchBagian && matchTL && matchKategori) {
                     row.style.display = '';
                     row.classList.remove('hidden');
                     const checkbox = row.querySelector('input[type="checkbox"]');
@@ -306,6 +705,11 @@ foreach ($database_users as $row) {
         // Tambahkan fungsi filterByBagian
         function filterByBagian(bagian) {
             currentBagian = bagian;
+            searchAndFilter();
+        }
+
+        function filterByKategoriGaji(kat) {
+            currentKategoriGaji = kat;
             searchAndFilter();
         }
 
@@ -618,6 +1022,19 @@ foreach ($database_users as $row) {
                         </optgroup>
                     </select>
                 </div>
+                <div class="filter-dropdown">
+                    <select class="filter-select" id="kategoriGajiFilter" onchange="filterByKategoriGaji(this.value)">
+                        <option value="all">💼 Semua Kategori Gaji</option>
+                        <?php foreach ($kategori_options as $kat): ?>
+                            <option value="<?= htmlspecialchars($kat) ?>"><?= htmlspecialchars($kat) ?></option>
+                        <?php endforeach; ?>
+                        <!-- Additional common categories -->
+                        <option value="Borongan Cabut">Borongan Cabut</option>
+                        <option value="Borongan Cetak">Borongan Cetak</option>
+                        <option value="Harian">Harian</option>
+                        <option value="Bulanan">Bulanan</option>
+                    </select>
+                </div>
                 <!-- Bulk Add S/I/A button (enabled only for DB users) -->
                 <div class="action-buttons">
                     <button type="button" id="addNoteBtn" class="btn-secondary" disabled onclick="openBulkNoteModal()">
@@ -642,6 +1059,7 @@ foreach ($database_users as $row) {
                         <th>Jabatan</th>
                         <th>Level</th>
                         <th>Bagian</th>
+                        <th>Kategori Gaji</th>
                         <th>Departemen</th>
                         <th>TL</th>
                     </tr>
@@ -650,7 +1068,8 @@ foreach ($database_users as $row) {
                     <?php foreach ($combined_users as $user): ?>
                         <tr class="user-row <?= (!$user['in_database']) ? 'machine-only' : '' ?> <?= $user['is_resign'] ? 'resign' : '' ?>"
                             data-status="<?= $user['in_machine'] && $user['in_database'] ? 'both' : ($user['in_machine'] ? 'machine' : 'database') ?>"
-                            data-tl-id="<?= htmlspecialchars($user['tl_id'] ?? '') ?>">
+                            data-tl-id="<?= htmlspecialchars($user['tl_id'] ?? '') ?>"
+                            data-kategori-gaji="<?= htmlspecialchars($user['kategori_gaji'] ?? '-') ?>">
                             <td class="checkbox-col">
                                 <?php if ($user['in_database'] && !$user['is_resign']): ?>
                                     <input type="checkbox" name ="selected_users[]" value="<?= htmlspecialchars($user['pin']) ?>"
@@ -673,6 +1092,7 @@ foreach ($database_users as $row) {
                             <td><?= htmlspecialchars($user['job_title']) ?></td>
                             <td><?= htmlspecialchars($user['job_level']) ?></td>
                             <td><?= htmlspecialchars($user['bagian']) ?></td>
+                            <td><?= htmlspecialchars($user['kategori_gaji'] ?? '-') ?></td>
                             <td><?= htmlspecialchars($user['departemen']) ?></td>
                             <td><?= htmlspecialchars($user['tl_name'] ?? '-') ?></td>
                         </tr>

@@ -197,6 +197,12 @@ foreach ($selected_users as $pin) {
     $per_user[$pin] = [
         'nip' => $nip_data[$pin]['nip'] ?? '-',
         'nama' => $nip_data[$pin]['nama'] ?? '-',
+        'nik' => $nip_data[$pin]['nik'] ?? '-',
+        'jk' => $nip_data[$pin]['jk'] ?? '-',
+        'job_title' => $nip_data[$pin]['job_title'] ?? '-',
+        'job_level' => $nip_data[$pin]['job_level'] ?? '-',
+        'bagian' => $nip_data[$pin]['bagian'] ?? '-',
+        'departemen' => $nip_data[$pin]['departemen'] ?? '-',
         'present' => 0,
         'no_absen' => 0,
         'A' => 0,
@@ -233,7 +239,7 @@ foreach ($selected_users as $pin) {
     }
 }
 
-// Total IN from stats (deprecated) — we now use total_present_days if needed
+// Total IN from stats (deprecated) â€" we now use total_present_days if needed
 $total_in_count = $total_present_days;
 
 // Handle saving absence notes (S/A/I)
@@ -439,6 +445,18 @@ if (isset($_POST['save_notes'])) {
             box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
         }
 
+        .btn-info {
+            background: linear-gradient(90deg, #17a2b8, #007bff);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(23, 162, 184, 0.18);
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+
+        .btn-info:hover {
+            box-shadow: 0 12px 28px rgba(23, 162, 184, 0.22);
+        }
+
         /* Spinner inside button */
         .btn .spinner {
             display: inline-block;
@@ -466,7 +484,119 @@ if (isset($_POST['save_notes'])) {
             }
         }
 
-        /* Table container - scrollable like halaman user */
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 0;
+            border: none;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            background: linear-gradient(90deg, var(--primary-1), var(--primary-2));
+            color: white;
+            padding: 20px;
+            border-radius: 12px 12px 0 0;
+            position: relative;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .close {
+            color: rgba(255,255,255,0.8);
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: white;
+            text-decoration: none;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .summary-card .number {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-2);
+            margin-bottom: 5px;
+        }
+
+        .summary-card .label {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .info-value {
+            color: #6b7280;
+        }
+
+        /* Table container - scrollable seperti halaman user */
         .table-container {
             max-height: 520px;
             overflow-y: auto;
@@ -516,6 +646,61 @@ if (isset($_POST['save_notes'])) {
         }
     </style>
     <script>
+        function openSummaryModal(pin) {
+            const modal = document.getElementById('summaryModal');
+            const userData = <?php echo json_encode($per_user); ?>;
+            const user = userData[pin];
+            
+            if (!user) return;
+            
+            // Update modal content
+            document.getElementById('modalPin').textContent = pin;
+            document.getElementById('modalNip').textContent = user.nip || '-';
+            document.getElementById('modalNama').textContent = user.nama || '-';
+            document.getElementById('modalJk').textContent = user.jk || '-';
+            document.getElementById('modalJobTitle').textContent = user.job_title || '-';
+            document.getElementById('modalJobLevel').textContent = user.job_level || '-';
+            document.getElementById('modalBagian').textContent = user.bagian || '-';
+            document.getElementById('modalDepartemen').textContent = user.departemen || '-';
+            
+            // Update summary numbers
+            document.getElementById('modalPresent').textContent = user.present;
+            document.getElementById('modalNoAbsen').textContent = user.no_absen;
+            document.getElementById('modalCountA').textContent = user.A;
+            document.getElementById('modalCountS').textContent = user.S;
+            document.getElementById('modalCountI').textContent = user.I;
+            
+            // Update notes
+            const notesList = document.getElementById('modalNotes');
+            notesList.innerHTML = '';
+            if (user.notes && user.notes.length > 0) {
+                user.notes.forEach(note => {
+                    if (note.code) {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<strong>${note.date}</strong>: ${note.code}`;
+                        notesList.appendChild(li);
+                    }
+                });
+            } else {
+                notesList.innerHTML = '<li style="color: #6b7280;">Tidak ada keterangan</li>';
+            }
+            
+            // Show modal
+            modal.style.display = 'block';
+        }
+        
+        function closeSummaryModal() {
+            document.getElementById('summaryModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('summaryModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
         function searchUsers() {
             const searchInput = document.getElementById('searchInput').value.toLowerCase();
             const tableRows = document.querySelectorAll('tbody tr');
@@ -551,8 +736,12 @@ if (isset($_POST['save_notes'])) {
 
         // Auto search saat mengetik
         document.addEventListener('DOMContentLoaded', function () {
-            document.getElementById('searchInput').addEventListener('input', searchUsers);
-        });</script>
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', searchUsers);
+            }
+        });
+    </script>
 </head>
 
 <body>
@@ -567,66 +756,6 @@ if (isset($_POST['save_notes'])) {
         <?php endif; ?>
         | 👥 <?= count($selected_users) ?> User Dipilih
     </div>
-
-    <!-- Per-user summary -->
-    <div style="margin-top:12px; margin-bottom:14px;">
-        <h3>Ringkasan Keterangan (periode)</h3>
-        <div style="overflow:auto; background:#fff; padding:8px; border-radius:8px; border:1px solid #eef2ff;">
-            <table style="width:100%; border-collapse:collapse; min-width:800px;">
-                <thead>
-                    <tr>
-                        <th style="padding:8px; text-align:left">PIN</th>
-                        <th style="padding:8px; text-align:left">NIP</th>
-                        <th style="padding:8px; text-align:left">Nama</th>
-                        <th style="padding:8px; text-align:left">Total Absen (hadir hari)</th>
-                        <th style="padding:8px; text-align:left">No Absen</th>
-                        <th style="padding:8px; text-align:left">A</th>
-                        <th style="padding:8px; text-align:left">S</th>
-                        <th style="padding:8px; text-align:left">I</th>
-                        <th style="padding:8px; text-align:left">Keterangan (tanggal:code)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($per_user as $pin => $p): ?>
-                        <tr>
-                            <td style="padding:8px"><?= htmlspecialchars($pin) ?></td>
-                            <td style="padding:8px"><?= htmlspecialchars($p['nip']) ?></td>
-                            <td style="padding:8px"><?= htmlspecialchars($p['nama']) ?></td>
-                            <td style="padding:8px"><?= $p['present'] ?></td>
-                            <td style="padding:8px"><?= $p['no_absen'] ?></td>
-                            <td style="padding:8px"><?= $p['A'] ?></td>
-                            <td style="padding:8px"><?= $p['S'] ?></td>
-                            <td style="padding:8px"><?= $p['I'] ?></td>
-                            <td style="padding:8px">
-                                <?php foreach ($p['notes'] as $n): if ($n['code']): ?>
-                                    <?= $n['date'] ?>:<?= $n['code'] ?>
-                                <?php endif; endforeach; ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-    <!-- Statistik -->
-   <!-- <div class="stats-container">
-        <div class="stat-box">
-            <div class="stat-number"><?= $stats['total'] ?></div>
-            <div class="stat-sub">Total Record</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-number" style="color: var(--accent-green);"><?= $stats['total_in'] ?></div>
-            <div class="stat-sub">Masuk (IN)</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-number" style="color: var(--accent-red);"><?= $stats['total_out'] ?></div>
-            <div class="stat-sub">Keluar (OUT)</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-number"><?= count($stats['by_user']) ?></div>
-            <div class="stat-sub">User Aktif</div>
-        </div>
-    </div>-->
 
     <!-- Action Buttons -->
     <div style="margin-bottom: 15px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
@@ -647,6 +776,92 @@ if (isset($_POST['save_notes'])) {
             </form>
         <?php endif; ?>
     </div>
+
+    <!-- Summary Modal -->
+    <div id="summaryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeSummaryModal()">&times;</span>
+                <h3>📋 Ringkasan Absensi Karyawan</h3>
+            </div>
+            <div class="modal-body">
+                <!-- Employee Info -->
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: var(--primary-2); margin-bottom: 15px;">👤 Informasi Karyawan</h4>
+                    <div class="info-row">
+                        <span class="info-label">PIN:</span>
+                        <span class="info-value" id="modalPin">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">NIP:</span>
+                        <span class="info-value" id="modalNip">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Nama:</span>
+                        <span class="info-value" id="modalNama">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Jenis Kelamin:</span>
+                        <span class="info-value" id="modalJk">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Job Title:</span>
+                        <span class="info-value" id="modalJobTitle">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Job Level:</span>
+                        <span class="info-value" id="modalJobLevel">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Bagian:</span>
+                        <span class="info-value" id="modalBagian">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Departemen:</span>
+                        <span class="info-value" id="modalDepartemen">-</span>
+                    </div>
+                </div>
+
+                <!-- Attendance Summary -->
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: var(--primary-2); margin-bottom: 15px;">📊 Ringkasan Kehadiran</h4>
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <div class="number" id="modalPresent" style="color: var(--accent-green);">0</div>
+                            <div class="label">Total Hadir</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="number" id="modalNoAbsen" style="color: #ff8c00;">0</div>
+                            <div class="label">Tidak Absen</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="number" id="modalCountA" style="color: var(--accent-red);">0</div>
+                            <div class="label">Alpha (A)</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="number" id="modalCountS" style="color: #007bff;">0</div>
+                            <div class="label">Sakit (S)</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="number" id="modalCountI" style="color: #6f42c1;">0</div>
+                            <div class="label">Ijin (I)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Notes -->
+                <div>
+                    <h4 style="color: var(--primary-2); margin-bottom: 15px;">📝 Detail Keterangan</h4>
+                    <div style="background: #f8fafc; border-radius: 8px; padding: 15px; max-height: 200px; overflow-y: auto;">
+                        <ul id="modalNotes" style="margin: 0; padding-left: 20px; color: #374151;">
+                            <li>Tidak ada keterangan</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tabel Data Absensi (scrollable) -->
     <form method="POST">
         <input type="hidden" name="detailBtn" value="1">
@@ -755,6 +970,7 @@ if (isset($_POST['save_notes'])) {
                                     <td><span class='status-in'>{$in_display}</span></td>
                                     <td><span class='status-out'>{$out_display}</span></td>
                                     <td>{$overtime_cell}</td>
+                                    <td><button type='button' class='btn btn-info' onclick='openSummaryModal(\"{$pin}\")'>📊 Detail</button></td>
                                 </tr>";
                         } else {
                             // No records on this date
@@ -771,12 +987,15 @@ if (isset($_POST['save_notes'])) {
                             if ($is_sunday) {
                                 $keterangan_html = '<span class="label-sunday">Minggu</span>';
                             } else {
-                                $keterangan_html = '<select name="absence_notes[' . htmlspecialchars($pin) . '][' . $tanggal_str . ']" class="select-ket">'
+                                $keterangan_html = '<div style="display: flex; gap: 8px; align-items: center;">'
+                                    . '<select name="absence_notes[' . htmlspecialchars($pin) . '][' . $tanggal_str . ']" class="select-ket">'
                                     . '<option value="">-</option>'
                                     . '<option value="S"' . ($existing_code === 'S' ? ' selected' : '') . '>S</option>'
                                     . '<option value="A"' . ($existing_code === 'A' ? ' selected' : '') . '>A</option>'
                                     . '<option value="I"' . ($existing_code === 'I' ? ' selected' : '') . '>I</option>'
-                                    . '</select>';
+                                    . '</select>'
+                                    . '<button type="button" class="btn btn-info" onclick="openSummaryModal(\'' . $pin . '\')">📊 Detail</button>'
+                                    . '</div>';
                             }
 
                             echo "<tr class='" . $row_class . "'>
