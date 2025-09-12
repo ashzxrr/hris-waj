@@ -853,7 +853,7 @@ foreach ($database_users as $row) {
 </head>
 
 <body>
-    <h2>👥 Data User Fingerprint & Database</h2>
+    <h2>👥 Database Karyawan</h2>
     <form method="POST" id="absenForm">
         <div class="main-container">
             <!-- Stats Section -->

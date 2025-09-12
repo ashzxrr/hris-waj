@@ -10,9 +10,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_users'])) {
 
     if (isset($_POST['users']) && is_array($_POST['users'])) {
         foreach ($_POST['users'] as $user_data) {
-            // Validasi data required
-            if (empty($user_data['pin']) || empty($user_data['nama'])) {
-                $error_messages[] = "PIN dan Nama harus diisi untuk user PIN: " . ($user_data['pin'] ?? 'Unknown');
+            // Validasi data required (PIN, Nama, Jenis Kelamin wajib)
+            if (empty($user_data['pin']) || empty($user_data['nama']) || empty($user_data['jk'])) {
+                $error_messages[] = "PIN, Nama, dan Jenis Kelamin harus diisi untuk user PIN: " . ($user_data['pin'] ?? 'Unknown');
                 continue;
             }
 
@@ -36,14 +36,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_users'])) {
             $nama = $user_data['nama'];
             $nip = !empty($user_data['nip']) ? $user_data['nip'] : '';
             $nik = !empty($user_data['nik']) ? $user_data['nik'] : '';
-            $jk = !empty($user_data['jk']) ? $user_data['jk'] : '';
+            // Normalize gender value to single-character code expected by DB (L or P)
+            $jk_raw = isset($user_data['jk']) ? trim($user_data['jk']) : '';
+            $jk = '';
+            if ($jk_raw !== '') {
+                $jk_up = strtoupper(substr($jk_raw, 0, 1));
+                if ($jk_up === 'L' || $jk_up === 'P') {
+                    $jk = $jk_up;
+                } else {
+                    // try to map common full strings
+                    $lk = strtolower($jk_raw);
+                    if (strpos($lk, 'laki') === 0) $jk = 'L';
+                    elseif (strpos($lk, 'perempuan') === 0 || strpos($lk, 'perem') === 0) $jk = 'P';
+                    else $jk = '';
+                }
+            }
             $job_title = !empty($user_data['job_title']) ? $user_data['job_title'] : '';
             $job_level = !empty($user_data['job_level']) ? $user_data['job_level'] : '';
             $bagian = !empty($user_data['bagian']) ? $user_data['bagian'] : '';
             $departemen = !empty($user_data['departemen']) ? $user_data['departemen'] : '';
-           $tl_id = !empty($user_data['tl_id']) ? $user_data['tl_id'] : '';
+            $tl_id = !empty($user_data['tl_id']) ? $user_data['tl_id'] : '';
             // Insert user baru (tl_id disimpan NULL bila kosong). Gunakan NULLIF untuk memungkinkan tl_id kosong.
-            $insert_query = "INSERT INTO users (pin, nip, nama, nik, jk, job_title, job_level, bagian, departemen, tl_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?,''))";
+            // Use NULLIF for jk and tl_id so empty strings become NULL (avoids enum/truncation errors)
+            $insert_query = "INSERT INTO users (pin, nip, nama, nik, jk, job_title, job_level, bagian, departemen, tl_id) VALUES (?, ?, ?, ?, NULLIF(? ,''), ?, ?, ?, ?, NULLIF(?,''))";
             $insert_stmt = mysqli_prepare($mysqli, $insert_query);
 
             if ($insert_stmt) {
@@ -613,7 +628,7 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
 
                                     <div class="form-group">
                                         <label class="form-label">Jenis Kelamin</label>
-                                        <select name="users[<?= $index ?>][jk]" class="form-control">
+                                        <select name="users[<?= $index ?>][jk]" class="form-control" required>
                                             <option value="">- Pilih -</option>
                                             <option value="L">Laki-laki</option>
                                             <option value="P">Perempuan</option>
@@ -716,7 +731,7 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
 
     <script>
         document.getElementById('userForm').addEventListener('submit', function (e) {
-            const requiredFields = document.querySelectorAll('input[required]');
+            const requiredFields = document.querySelectorAll('input[required], select[required]');
             let isValid = true;
             let firstInvalid = null;
 
@@ -725,9 +740,10 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                 field.classList.remove('error');
             });
 
-            // Validate required fields
+            // Validate required fields (inputs and selects)
             requiredFields.forEach(field => {
-                if (!field.value.trim()) {
+                const val = field.value === null ? '' : String(field.value).trim();
+                if (!val) {
                     field.classList.add('error');
                     if (!firstInvalid) {
                         firstInvalid = field;
