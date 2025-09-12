@@ -853,7 +853,7 @@ ksort($kategori_map);
 </head>
 
 <body>
-    <h2>👥 Data User Fingerprint & Database</h2>
+    <h2>📄 Absensi Karyawan</h2>
     <form method="POST" action="?page=detail-attends" onsubmit="return validateForm()" id="absenForm">
         <div class="main-container">
             <!-- Stats Section -->

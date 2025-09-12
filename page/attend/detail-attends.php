@@ -18,6 +18,7 @@ if (isset($_POST['exportBtn'])) {
         $tanggal_dari = $_POST['tanggal_dari'];
         $tanggal_sampai = $_POST['tanggal_sampai'];
 
+
         // Ambil data user dan absensi
         $users = getUsers($ip, $port, $key);
         $all_attendance = getAttendanceRange($ip, $port, $key, $tanggal_dari, $tanggal_sampai, $users);
@@ -30,26 +31,9 @@ if (isset($_POST['exportBtn'])) {
         // Tambahkan data dari database
         $pins = array_map('intval', $selected_users);
         $pin_list = implode(',', $pins);
-        $nip_data = [];
 
-        if (!empty($pins)) {
-            $result = mysqli_query($mysqli, "SELECT pin, nip, nama, bagian, nik, jk, job_title, job_level, bagian, departemen FROM users WHERE pin IN ($pin_list)");
-            if (!$result) {
-                throw new Exception('Error querying database: ' . mysqli_error($mysqli));
-            }
-
-            while ($row = mysqli_fetch_assoc($result)) {
-                $nip_data[$row['pin']] = [
-                    'nip' => $row['nip'],
-                    'nik' => $row['nik'],
-                    'jk' => $row['jk'],
-                    'job_title' => $row['job_title'],
-                    'job_level' => $row['job_level'],
-                    'bagian' => $row['bagian'],
-                    'departemen' => $row['departemen']
-                ];
-            }
-        }
+        // Fetch nip_data once
+        $nip_data = get_nip_data_from_db($mysqli, $pins);
 
         // Tambahkan data database ke setiap record
         foreach ($filtered_attendance as &$record) {
@@ -80,8 +64,37 @@ if (isset($_POST['exportBtn'])) {
 
 require __DIR__ . '/../../includes/header.php';
 
-// Debug untuk melihat data yang diterima
-error_log('POST Data: ' . print_r($_POST, true));
+/**
+ * Fetch user info (nip_data) for given pins from DB.
+ * Returns array keyed by pin with fields: nip, nama, nik, jk, job_title, job_level, bagian, departemen
+ */
+function get_nip_data_from_db($mysqli, $pins)
+{
+    $nip_data = [];
+    if (empty($pins)) {
+        return $nip_data;
+    }
+
+    $pin_list = implode(',', array_map('intval', $pins));
+    $sql = "SELECT pin, nip, nama, bagian, nik, jk, job_title, job_level, bagian, departemen FROM users WHERE pin IN ($pin_list)";
+    $res = mysqli_query($mysqli, $sql);
+    if ($res) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $nip_data[$row['pin']] = [
+                'nip' => $row['nip'],
+                'nama' => $row['nama'],
+                'nik' => $row['nik'],
+                'jk' => $row['jk'],
+                'job_title' => $row['job_title'],
+                'job_level' => $row['job_level'],
+                'bagian' => $row['bagian'],
+                'departemen' => $row['departemen']
+            ];
+        }
+    }
+
+    return $nip_data;
+}
 
 // Cek apakah form sudah disubmit
 if (!isset($_POST['detailBtn']) || empty($_POST['selected_users']) || empty($_POST['tanggal_dari']) || empty($_POST['tanggal_sampai'])) {
@@ -121,22 +134,7 @@ function getNamaHari($date)
     return $hari[date('l', strtotime($date))];
 }
 
-$nip_data = [];
-if (!empty($pins)) {
-    $result = mysqli_query($mysqli, "SELECT pin, nip, nama, bagian, nik, jk, job_title, job_level, bagian, departemen FROM users WHERE pin IN ($pin_list)");
-    while ($row = mysqli_fetch_assoc($result)) {
-        $nip_data[$row['pin']] = [
-            'nip' => $row['nip'],
-            'nama' => $row['nama'],
-            'nik' => $row['nik'],
-            'jk' => $row['jk'],
-            'job_title' => $row['job_title'],
-            'job_level' => $row['job_level'],
-            'bagian' => $row['bagian'],
-            'departemen' => $row['departemen']
-        ];
-    }
-}
+$nip_data = get_nip_data_from_db($mysqli, $pins);
 
 // Tambahkan NIP & Bagian ke setiap record
 foreach ($filtered_attendance as &$record) {
@@ -339,7 +337,7 @@ if (isset($_POST['save_notes'])) {
             box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
             min-width: 160px;
             flex: 1 1 150px;
-        } 
+        }
 
         .stat-number {
             font-size: 22px;
@@ -353,30 +351,17 @@ if (isset($_POST['save_notes'])) {
             margin-top: 6px;
         }
 
-        /* Styled select for keterangan column (modern) */
-               /* Styled select for keterangan column */
-        .select-ket {
-            padding: 6px 8px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            background: #fff;
-            font-weight: 600;
-            color: #111827;
-        }
+        /* Styled select removed (Keterangan now rendered as labels) */
 
-        .select-ket:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.08);
-            border-color: #6366f1;
-        }
         /* Sunday label */
         .label-sunday {
-            color: #dc2626; /* red */
+            color: #dc2626;
+            /* red */
             font-weight: 700;
         }
 
         /* Buttons (rounded + bubble ornaments) */
-        .btn { 
+        .btn {
             padding: 8px 14px;
             cursor: pointer;
             border: none;
@@ -389,7 +374,7 @@ if (isset($_POST['save_notes'])) {
             transition: all .18s ease;
             position: relative;
             overflow: hidden;
-        } 
+        }
 
         .btn::before,
         .btn::after {
@@ -448,13 +433,21 @@ if (isset($_POST['save_notes'])) {
         .btn-info {
             background: linear-gradient(90deg, #17a2b8, #007bff);
             color: #fff;
-            box-shadow: 0 8px 20px rgba(23, 162, 184, 0.18);
+            box-shadow: 0 8px 20px rgba(23, 162, 184, 0.12);
             font-size: 12px;
-            padding: 6px 12px;
+            padding: 6px 10px;
         }
 
         .btn-info:hover {
-            box-shadow: 0 12px 28px rgba(23, 162, 184, 0.22);
+            box-shadow: 0 10px 22px rgba(23, 162, 184, 0.14);
+        }
+
+        /* Small button variant used for Detail */
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 6px;
+            min-width: 64px;
         }
 
         /* Spinner inside button */
@@ -494,7 +487,7 @@ if (isset($_POST['save_notes'])) {
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.4);
+            background-color: rgba(0, 0, 0, 0.4);
         }
 
         .modal-content {
@@ -505,13 +498,20 @@ if (isset($_POST['save_notes'])) {
             border-radius: 12px;
             width: 90%;
             max-width: 800px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
             animation: modalSlideIn 0.3s ease-out;
         }
 
         @keyframes modalSlideIn {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .modal-header {
@@ -533,7 +533,7 @@ if (isset($_POST['save_notes'])) {
         }
 
         .close {
-            color: rgba(255,255,255,0.8);
+            color: rgba(255, 255, 255, 0.8);
             float: right;
             font-size: 28px;
             font-weight: bold;
@@ -650,26 +650,25 @@ if (isset($_POST['save_notes'])) {
             const modal = document.getElementById('summaryModal');
             const userData = <?php echo json_encode($per_user); ?>;
             const user = userData[pin];
-            
+
             if (!user) return;
-            
+
             // Update modal content
             document.getElementById('modalPin').textContent = pin;
             document.getElementById('modalNip').textContent = user.nip || '-';
             document.getElementById('modalNama').textContent = user.nama || '-';
             document.getElementById('modalJk').textContent = user.jk || '-';
-            document.getElementById('modalJobTitle').textContent = user.job_title || '-';
-            document.getElementById('modalJobLevel').textContent = user.job_level || '-';
-            document.getElementById('modalBagian').textContent = user.bagian || '-';
-            document.getElementById('modalDepartemen').textContent = user.departemen || '-';
-            
+            // Combine job title and level into a single Jabatan field
+            var jabatan = (user.job_title || '-') + (user.job_level && user.job_level !== '-' ? ' (' + user.job_level + ')' : '');
+            document.getElementById('modalJabatan').textContent = jabatan;
+
             // Update summary numbers
             document.getElementById('modalPresent').textContent = user.present;
             document.getElementById('modalNoAbsen').textContent = user.no_absen;
             document.getElementById('modalCountA').textContent = user.A;
             document.getElementById('modalCountS').textContent = user.S;
             document.getElementById('modalCountI').textContent = user.I;
-            
+
             // Update notes
             const notesList = document.getElementById('modalNotes');
             notesList.innerHTML = '';
@@ -684,17 +683,17 @@ if (isset($_POST['save_notes'])) {
             } else {
                 notesList.innerHTML = '<li style="color: #6b7280;">Tidak ada keterangan</li>';
             }
-            
+
             // Show modal
             modal.style.display = 'block';
         }
-        
+
         function closeSummaryModal() {
             document.getElementById('summaryModal').style.display = 'none';
         }
-        
+
         // Close modal when clicking outside
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             const modal = document.getElementById('summaryModal');
             if (event.target == modal) {
                 modal.style.display = 'none';
@@ -707,8 +706,8 @@ if (isset($_POST['save_notes'])) {
             let visibleCount = 0;
 
             tableRows.forEach(row => {
-                const pin = row.cells[1].textContent.toLowerCase();
-                const nama = row.cells[2].textContent.toLowerCase();
+                const pin = (row.cells[1] && row.cells[1].textContent) ? row.cells[1].textContent.toLowerCase() : '';
+                const nama = (row.cells[3] && row.cells[3].textContent) ? row.cells[3].textContent.toLowerCase() : '';
                 const checkbox = row.querySelector('input[type="checkbox"]');
 
                 if (pin.includes(searchInput) || nama.includes(searchInput)) {
@@ -746,7 +745,7 @@ if (isset($_POST['save_notes'])) {
 
 <body>
 
-    <h2>📊 Detail Absensi</h2>
+    <h2>Detail Absensi</h2>
 
     <div class="filter-info">
         <strong>Filter:</strong>
@@ -805,20 +804,8 @@ if (isset($_POST['save_notes'])) {
                         <span class="info-value" id="modalJk">-</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Job Title:</span>
-                        <span class="info-value" id="modalJobTitle">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Job Level:</span>
-                        <span class="info-value" id="modalJobLevel">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Bagian:</span>
-                        <span class="info-value" id="modalBagian">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Departemen:</span>
-                        <span class="info-value" id="modalDepartemen">-</span>
+                        <span class="info-label">Jabatan:</span>
+                        <span class="info-value" id="modalJabatan">-</span>
                     </div>
                 </div>
 
@@ -852,7 +839,8 @@ if (isset($_POST['save_notes'])) {
                 <!-- Detailed Notes -->
                 <div>
                     <h4 style="color: var(--primary-2); margin-bottom: 15px;">📝 Detail Keterangan</h4>
-                    <div style="background: #f8fafc; border-radius: 8px; padding: 15px; max-height: 200px; overflow-y: auto;">
+                    <div
+                        style="background: #f8fafc; border-radius: 8px; padding: 15px; max-height: 200px; overflow-y: auto;">
                         <ul id="modalNotes" style="margin: 0; padding-left: 20px; color: #374151;">
                             <li>Tidak ada keterangan</li>
                         </ul>
@@ -871,188 +859,189 @@ if (isset($_POST['save_notes'])) {
         <input type="hidden" name="tanggal_dari" value="<?= htmlspecialchars($tanggal_dari) ?>">
         <input type="hidden" name="tanggal_sampai" value="<?= htmlspecialchars($tanggal_sampai) ?>">
 
-        <div style="margin-bottom:10px; display:flex; gap:8px; align-items:center">
-            <button type="submit" name="save_notes" class="btn btn-primary">💾 Simpan Keterangan</button>
-            <?php if (!empty($save_msg)): ?><span style="color:green; font-weight:600; margin-left:8px"><?= $save_msg ?></span><?php endif; ?>
+        <div style="margin-bottom:10px; display:flex; gap:8px; align-items:center; justify-content:space-between;">
+            <div>
+                <input id="searchInput" type="search" placeholder="Cari PIN atau Nama..." style="padding:8px 10px; border:1px solid #d1d5db; border-radius:6px; min-width:260px;">
+                <span style="margin-left:8px; color:#6b7280;">Jumlah: <strong id="userCount"><?= count($selected_users) ?></strong></span>
+            </div>
+            <!-- Save button removed (keterangan now read-only) -->
         </div>
 
         <div class="table-container">
             <table>
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th style="display: none;">PIN</th> <!-- Sembunyikan kolom PIN -->
-                    <th>NIP</th>
-                    <th>Nama</th>
-                    <th>L/P</th>
-                    <th>Job Title</th>
-                    <th>Job Level</th>
-                    <th>Bagian</th>
-                    <th>Departemen</th>
-                    <th>Tanggal</th>
-                    <th>In</th>
-                    <th>Out</th>
-                    <th>Overtime</th>
-                    <th>Keterangan</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                $no = 1;
-                $periode = new DatePeriod(
-                    new DateTime($tanggal_dari),
-                    new DateInterval('P1D'),
-                    (new DateTime($tanggal_sampai))->modify('+1 day')
-                );
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th style="display: none;">PIN</th>
+                        <th>NIP</th>
+                        <th>Nama</th>
+                        <th>L/P</th>
+                        <th>Jabatan</th>
+                        <th>Tanggal</th>
+                        <th>In</th>
+                        <th>Out</th>
+                        <th>Overtime</th>
+                        <th>Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $no = 1;
+                    $periode = new DatePeriod(
+                        new DateTime($tanggal_dari),
+                        new DateInterval('P1D'),
+                        (new DateTime($tanggal_sampai))->modify('+1 day')
+                    );
 
-                foreach ($selected_users as $pin) {
-                    foreach ($periode as $tgl) {
-                        $tanggal_str = $tgl->format('Y-m-d');
-                        $records_on_date = array_filter($filtered_attendance, function ($item) use ($pin, $tanggal_str) {
-                            return $item['pin'] == $pin && date('Y-m-d', strtotime($item['datetime'])) == $tanggal_str;
-                        });
+                    foreach ($selected_users as $pin) {
+                        foreach ($periode as $tgl) {
+                            $tanggal_str = $tgl->format('Y-m-d');
+                            $records_on_date = array_filter($filtered_attendance, function ($item) use ($pin, $tanggal_str) {
+                                return $item['pin'] == $pin && date('Y-m-d', strtotime($item['datetime'])) == $tanggal_str;
+                            });
 
-                        // Collect IN and OUT times
-                        $in_times = [];
-                        $out_times = [];
-                        foreach ($records_on_date as $record) {
-                            $ts = strtotime($record['datetime']);
-                            if (strtoupper($record['status']) === 'IN') {
-                                $in_times[] = $ts;
-                            } else {
-                                $out_times[] = $ts;
-                            }
-                        }
-
-                        // Determine display values
-                        $in_ts = !empty($in_times) ? min($in_times) : null;
-                        $out_ts = !empty($out_times) ? max($out_times) : null;
-
-                        $in_display = $in_ts ? date('H.i', $in_ts) : '-';
-                        $out_display = $out_ts ? date('H.i', $out_ts) : '-';
-
-                        // Overtime: minutes after 16:30
-                        if ($out_ts) {
-                            $threshold = strtotime($tanggal_str . ' 16:30:00');
-                            $overtime_minutes = $out_ts > $threshold ? floor(($out_ts - $threshold) / 60) : 0;
-                            $overtime_display = $overtime_minutes > 0 ? $overtime_minutes . ' menit' : '----';
-                        } else {
-                            $overtime_display = '----';
-                        }
-
-                        if (!empty($records_on_date)) {
-                            $tanggal = date('d/m/Y', strtotime($tanggal_str));
-                            $hari = getNamaHari($tanggal_str);
-                            // Use common user/database info from first available record or fallback to nip_data/users
-                            $sample = reset($records_on_date);
-                            $nip = $sample['nip'] ?? ($nip_data[$pin]['nip'] ?? '-');
-                            $nama = $nip_data[$pin]['nama'] ?? ($sample['nama'] ?? '-');
-                            $jk = $sample['jk'] ?? ($nip_data[$pin]['jk'] ?? '-');
-                            $job_title = $sample['job_title'] ?? ($nip_data[$pin]['job_title'] ?? '-');
-                            $job_level = $sample['job_level'] ?? ($nip_data[$pin]['job_level'] ?? '-');
-                            $bagian = $sample['bagian'] ?? ($nip_data[$pin]['bagian'] ?? '-');
-                            $departemen = $sample['departemen'] ?? ($nip_data[$pin]['departemen'] ?? '-');
-
-                            // Prepare overtime cell with styling
-                            $overtime_cell = $overtime_display !== '----' ? "<span class='status-overtime'>{$overtime_display}</span>" : $overtime_display;
-
-                            echo "<tr>
-                                    <td>" . $no++ . "</td>
-                                    <td style='display: none;'>{$pin}</td>
-                                    <td>" . htmlspecialchars($nip) . "</td>
-                                    <td>" . htmlspecialchars($nama) . "</td>
-                                    <td>" . htmlspecialchars($jk) . "</td>
-                                    <td>" . htmlspecialchars($job_title) . "</td>
-                                    <td>" . htmlspecialchars($job_level) . "</td>
-                                    <td>" . htmlspecialchars($bagian) . "</td>
-                                    <td>" . htmlspecialchars($departemen) . "</td>
-                                    <td>{$hari}, {$tanggal}</td>
-                                    <td><span class='status-in'>{$in_display}</span></td>
-                                    <td><span class='status-out'>{$out_display}</span></td>
-                                    <td>{$overtime_cell}</td>
-                                    <td><button type='button' class='btn btn-info' onclick='openSummaryModal(\"{$pin}\")'>📊 Detail</button></td>
-                                </tr>";
-                        } else {
-                            // No records on this date
-                            $tanggal = date('d/m/Y', strtotime($tanggal_str));
-                            $hari = getNamaHari($tanggal_str);
-                            // jika bukan hari Minggu, beri warna kuning-oranye pada baris
-                            $is_sunday = ($hari === 'Minggu');
-                            $row_class = $is_sunday ? '' : 'no-absen-row';
-
-                            // get existing code if any
-                            $existing_code = $absence_notes[$pin][$tanggal_str] ?? '';
-
-                            // render select only if not Sunday
-                            if ($is_sunday) {
-                                $keterangan_html = '<span class="label-sunday">Minggu</span>';
-                            } else {
-                                $keterangan_html = '<div style="display: flex; gap: 8px; align-items: center;">'
-                                    . '<select name="absence_notes[' . htmlspecialchars($pin) . '][' . $tanggal_str . ']" class="select-ket">'
-                                    . '<option value="">-</option>'
-                                    . '<option value="S"' . ($existing_code === 'S' ? ' selected' : '') . '>S</option>'
-                                    . '<option value="A"' . ($existing_code === 'A' ? ' selected' : '') . '>A</option>'
-                                    . '<option value="I"' . ($existing_code === 'I' ? ' selected' : '') . '>I</option>'
-                                    . '</select>'
-                                    . '<button type="button" class="btn btn-info" onclick="openSummaryModal(\'' . $pin . '\')">📊 Detail</button>'
-                                    . '</div>';
+                            // Collect IN and OUT times
+                            $in_times = [];
+                            $out_times = [];
+                            foreach ($records_on_date as $record) {
+                                $ts = strtotime($record['datetime']);
+                                if (strtoupper($record['status']) === 'IN') {
+                                    $in_times[] = $ts;
+                                } else {
+                                    $out_times[] = $ts;
+                                }
                             }
 
-                            echo "<tr class='" . $row_class . "'>
-                                <td>" . $no++ . "</td>
-                                <td style='display: none;'>{$pin}</td>
-                                <td>" . ($nip_data[$pin]['nip'] ?? '-') . "</td>
-                                <td>" . ($nip_data[$pin]['nama'] ?? '-') . "</td>
-                                <td>" . ($nip_data[$pin]['jk'] ?? '-') . "</td>
-                                <td>" . ($nip_data[$pin]['job_title'] ?? '-') . "</td>
-                                <td>" . ($nip_data[$pin]['job_level'] ?? '-') . "</td>
-                                <td>" . ($nip_data[$pin]['bagian'] ?? '-') . "</td>
-                                <td>" . ($nip_data[$pin]['departemen'] ?? '-') . "</td>
-                                <td>{$hari}, {$tanggal}</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>----</td>
-                                <td>" . $keterangan_html . "</td>
-                            </tr>";
-                        }
+                            // Determine display values
+                            $in_ts = !empty($in_times) ? min($in_times) : null;
+                            $out_ts = !empty($out_times) ? max($out_times) : null;
+
+                            $in_display = $in_ts ? date('H.i', $in_ts) : '-';
+                            $out_display = $out_ts ? date('H.i', $out_ts) : '-';
+
+                            // Overtime: minutes after 16:30
+                            if ($out_ts) {
+                                $threshold = strtotime($tanggal_str . ' 16:30:00');
+                                $overtime_minutes = $out_ts > $threshold ? floor(($out_ts - $threshold) / 60) : 0;
+                                $overtime_display = $overtime_minutes > 0 ? $overtime_minutes . ' menit' : '----';
+                            } else {
+                                $overtime_display = '----';
+                            }
+
+                            if (!empty($records_on_date)) {
+                                $tanggal = date('d/m/Y', strtotime($tanggal_str));
+                                $hari = getNamaHari($tanggal_str);
+                                // Use common user/database info from first available record or fallback to nip_data/users
+                                $sample = reset($records_on_date);
+                                $nip = $sample['nip'] ?? ($nip_data[$pin]['nip'] ?? '-');
+                                $nama = $nip_data[$pin]['nama'] ?? ($sample['nama'] ?? '-');
+                                $jk = $sample['jk'] ?? ($nip_data[$pin]['jk'] ?? '-');
+                                $job_title = $sample['job_title'] ?? ($nip_data[$pin]['job_title'] ?? '-');
+                                $job_level = $sample['job_level'] ?? ($nip_data[$pin]['job_level'] ?? '-');
+                                $jabatan = trim($job_title . ' ' . ($job_level && $job_level !== '-' ? '(' . $job_level . ')' : ''));
+
+                                // Prepare overtime cell with styling
+                                $overtime_cell = $overtime_display !== '----' ? '<span class="status-overtime">' . $overtime_display . '</span>' : $overtime_display;
+
+                                echo '<tr>'
+                                    . '<td>' . ($no++) . '</td>'
+                                    . '<td style="display: none;">' . htmlspecialchars($pin) . '</td>'
+                                    . '<td>' . htmlspecialchars($nip) . '</td>'
+                                    . '<td>' . htmlspecialchars($nama) . '</td>'
+                                    . '<td>' . htmlspecialchars($jk) . '</td>'
+                                    . '<td>' . htmlspecialchars($jabatan) . '</td>'
+                                    . '<td>' . $hari . ', ' . $tanggal . '</td>'
+                                    . '<td><span class="status-in">' . $in_display . '</span></td>'
+                                    . '<td><span class="status-out">' . $out_display . '</span></td>'
+                                    . '<td>' . $overtime_cell . '</td>'
+                                    . '<td>----</td>'
+                                    . '<td><button type="button" class="btn btn-info btn-sm" onclick="openSummaryModal(\'' . htmlspecialchars($pin) . '\')">Detail</button></td>'
+                                    . '</tr>';
+                            } else {
+                                // No records on this date
+                                $tanggal = date('d/m/Y', strtotime($tanggal_str));
+                                $hari = getNamaHari($tanggal_str);
+                                // jika bukan hari Minggu, beri warna kuning-oranye pada baris
+                                $is_sunday = ($hari === 'Minggu');
+                                $row_class = $is_sunday ? '' : 'no-absen-row';
+
+                                // get existing code if any
+                                $existing_code = $absence_notes[$pin][$tanggal_str] ?? '';
+
+                                // render label only (no select) -- keep 'Minggu' label for Sundays
+                                if ($is_sunday) {
+                                    $keterangan_html = '<span class="label-sunday">Minggu</span>';
+                                } else {
+                                    $code_labels = [
+                                        'S' => 'S (Sakit)',
+                                        'A' => 'A (Alpha)',
+                                        'I' => 'I (Izin)'
+                                    ];
+
+                                    $display_label = '-';
+                                    if (!empty($existing_code)) {
+                                        $display_label = $code_labels[$existing_code] ?? $existing_code;
+                                    }
+
+                                    $keterangan_html = '<div style="font-weight:600; color:#374151;">' . htmlspecialchars($display_label) . '</div>';
+
+                                }
+
+                                echo '<tr class="' . $row_class . '">'
+                                    . '<td>' . ($no++) . '</td>'
+                                    . '<td style="display: none;">' . htmlspecialchars($pin) . '</td>'
+                                    . '<td>' . ($nip_data[$pin]['nip'] ?? '-') . '</td>'
+                                    . '<td>' . ($nip_data[$pin]['nama'] ?? '-') . '</td>'
+                                    . '<td>' . ($nip_data[$pin]['jk'] ?? '-') . '</td>'
+                                    . '<td>' . ($nip_data[$pin]['job_title'] ?? '-') . '</td>'
+                                    . '<td>' . $hari . ', ' . $tanggal . '</td>'
+                                    . '<td>-</td>'
+                                    . '<td>-</td>'
+                                    . '<td>----</td>'
+                                    . '<td>' . $keterangan_html . '</td>'
+                                    . '<td><button type="button" class="btn btn-info btn-sm" onclick="openSummaryModal(\'' . htmlspecialchars($pin) . '\')">Detail</button></td>'
+                                    . '</tr>';
+                                }
+                            }
+
                     }
-                }
-                ?>
-            </tbody>
+                    ?>
+
+                </tbody>
             </table>
         </div>
-        </form>
+    </form>
 
-        <?php if (!empty($save_msg)): ?>
-            <script>
-                (function(){
-                    var msg = <?= json_encode($save_msg) ?>;
-                    function doReload(){
-                        // find the form used for details (the closest form)
-                        var form = document.querySelector('form');
-                        if (!form) return;
-                        // remove/disable save button name to avoid re-triggering save on submit
-                        var saveBtn = form.querySelector('button[name="save_notes"]');
-                        if (saveBtn) saveBtn.removeAttribute('name');
-                        // submit form to reload data (will POST without save_notes)
-                        form.submit();
-                    }
+    <?php if (!empty($save_msg)): ?>
+        <script>
+            (function () {
+                var msg = <?= json_encode($save_msg) ?>;
+                function doReload() {
+                    // find the form used for details (the closest form)
+                    var form = document.querySelector('form');
+                    if (!form) return;
+                    // remove/disable save button name to avoid re-triggering save on submit
+                    var saveBtn = form.querySelector('button[name="save_notes"]');
+                    if (saveBtn) saveBtn.removeAttribute('name');
+                    // submit form to reload data (will POST without save_notes)
+                    form.submit();
+                }
 
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil',
-                            text: msg,
-                            timer: 1500,
-                            showConfirmButton: false
-                        }).then(function(){ setTimeout(doReload, 100); });
-                    } else {
-                        alert(msg);
-                        setTimeout(doReload, 100);
-                    }
-                })();
-            </script>
-        <?php endif; ?>
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: msg,
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(function () { setTimeout(doReload, 100); });
+                } else {
+                    alert(msg);
+                    setTimeout(doReload, 100);
+                }
+            })();
+        </script>
+    <?php endif; ?>
 </body>
 
 </html>
