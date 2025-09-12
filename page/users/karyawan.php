@@ -14,7 +14,32 @@ if (!isset($_SESSION['user_id'])) {
 require __DIR__ . '/../../includes/config.php';
 require __DIR__ . '/../../includes/functions.php';
 require __DIR__ . '/../../includes/header.php';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
+    $user_id = isset($_POST['user_id']) ? (int) $_POST['user_id'] : 0;
+    if ($user_id <= 0) {
+        echo "<script>alert('ID user tidak valid.'); window.location.href='?page=users';</script>";
+        exit;
+    }
 
+    $stmt = mysqli_prepare($mysqli, "DELETE FROM `users` WHERE `id` = ?");
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, "i", $user_id);
+        if (mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            echo "<script>alert('User berhasil dihapus.'); window.location.href='?page=users';</script>";
+            exit;
+        } else {
+            $err = mysqli_stmt_error($stmt);
+            mysqli_stmt_close($stmt);
+            echo "<script>alert('Gagal menghapus user: " . htmlspecialchars($err, ENT_QUOTES) . "'); window.location.href='?page=users';</script>";
+            exit;
+        }
+    } else {
+        $err = mysqli_error($mysqli);
+        echo "<script>alert('DB error: " . htmlspecialchars($err, ENT_QUOTES) . "'); window.location.href='?page=users';</script>";
+        exit;
+    }
+}
 // Ambil data user dari mesin fingerprint
 $users = getUsers($ip, $port, $key);
 
@@ -505,6 +530,33 @@ foreach ($database_users as $row) {
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             border: 1px solid rgba(0, 0, 0, 0.1);
         }
+
+        /* Delete (danger) button */
+        .btn-delete {
+            background: #ef4444;
+            color: #fff;
+            border: 0;
+            padding: 6px 7px;
+            border-radius: 8px;
+
+            font-weight: 300;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            transition: transform .08s ease, box-shadow .08s ease;
+        }
+
+        .btn-delete:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.12);
+        }
+
+        .btn-delete:active {
+            transform: translateY(0);
+        }
     </style>
     <script>
 
@@ -767,7 +819,26 @@ foreach ($database_users as $row) {
             // Date/attendance UI removed for employee-only page
         });
 
-        // Date helpers removed
+        function confirmDelete(userId, userName) {
+            const ok = confirm('Yakin ingin menghapus user \"' + userName + '\" (ID ' + userId + ')? Tindakan ini tidak dapat dibatalkan.');
+            if (!ok) return;
+            // create and submit POST form
+            const f = document.createElement('form');
+            f.method = 'POST';
+            f.action = '?page=users';
+            const i1 = document.createElement('input');
+            i1.type = 'hidden';
+            i1.name = 'delete_user';
+            i1.value = '1';
+            f.appendChild(i1);
+            const i2 = document.createElement('input');
+            i2.type = 'hidden';
+            i2.name = 'user_id';
+            i2.value = userId;
+            f.appendChild(i2);
+            document.body.appendChild(f);
+            f.submit();
+        }
     </script>
 </head>
 
@@ -954,6 +1025,7 @@ foreach ($database_users as $row) {
                     <tr>
                         <th class="checkbox-col">✓</th>
                         <th>ID</th>
+                        <th>Aksi</th>
                         <th class="pin-col">PIN</th>
                         <th>Nama (Mesin)</th>
                         <th>Nama (Database)</th>
@@ -984,6 +1056,14 @@ foreach ($database_users as $row) {
                                 <?php endif; ?>
                             </td>
                             <td><?= htmlspecialchars($user['id'] ?? '-') ?></td>
+                            <td>
+                                <?php if (!empty($user['in_database'])): ?>
+                                    <button type="button" class="btn-delete"
+                                        onclick="confirmDelete(<?php echo (int) $user['id']; ?>, '<?php echo addslashes($user['nama_database'] ?? $user['nama_mesin'] ?? 'User'); ?>')">🗑️</button>
+                                <?php else: ?>
+                                    <span style="color:#999; font-size:10px;">-</span>
+                                <?php endif; ?>
+                            </td>
                             <td class="pin-col"><?= htmlspecialchars($user['pin']) ?></td>
                             <td><?= htmlspecialchars($user['nama_mesin']) ?></td>
                             <td><?= htmlspecialchars($user['nama_db']) ?><?= $user['is_resign'] ? ' <small>(RESIGN)</small>' : '' ?>
