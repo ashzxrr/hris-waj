@@ -223,7 +223,7 @@ try {
                             <div class="card-body">
                                 <i class="fa-solid fa-calendar-check fa-1x text-secondary"></i>
                                 <div class="card-content">
-                                    <div class="value-text">Attendance</div>
+                                    <div class="value-text">Absensi</div>
                                     <div class="value-text"><?= number_format($total_attends ?? 0, 0, ',', '.') ?></div>
                                 </div>
                             </div>
@@ -237,8 +237,8 @@ try {
                             <div class="card-body">
                                 <i class="fa-solid fa-money-bill-wave text-success"></i>
                                 <div class="card-content">
-                                    <div class="value-text">Payroll</div>
-                                    <div class="value-text"><?= number_format($total_users, 0, ',', '.') ?></div>
+                                    <div class="value-text">Gaji</div>
+                                    <div class="value-text">--</div>
                                 </div>
                             </div>
                         </div>
