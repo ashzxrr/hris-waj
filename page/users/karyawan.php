@@ -611,7 +611,17 @@ foreach ($database_users as $row) {
             selectedMachineOnly.forEach((checkbox, index) => {
                 const row = checkbox.closest('tr');
                 const pin = checkbox.value;
-                const namaMesin = row.cells[3].textContent.trim();
+                // Table columns: 0=chk,1=id,2=aksi,3=pin,4=nama_mesin,5=nama_db,...
+                // Nama mesin berada di cell index 4
+                let namaMesin = '';
+                if (row.cells && row.cells.length > 4) {
+                    namaMesin = row.cells[4].textContent.trim();
+                }
+
+                // Fallback: jika kosong, coba ambil dari attribute data-name
+                if (!namaMesin) {
+                    namaMesin = row.dataset.namaMesin || '';
+                }
 
                 // Buat hidden inputs untuk pin dan nama
                 const pinInput = document.createElement('input');
