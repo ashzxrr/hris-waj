@@ -41,13 +41,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_users'])) {
             $job_level = !empty($user_data['job_level']) ? $user_data['job_level'] : '';
             $bagian = !empty($user_data['bagian']) ? $user_data['bagian'] : '';
             $departemen = !empty($user_data['departemen']) ? $user_data['departemen'] : '';
-
-            // Insert user baru
-            $insert_query = "INSERT INTO users (pin, nip, nama, nik, jk, job_title, job_level, bagian, departemen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+           $tl_id = !empty($user_data['tl_id']) ? $user_data['tl_id'] : '';
+            // Insert user baru (tl_id disimpan NULL bila kosong). Gunakan NULLIF untuk memungkinkan tl_id kosong.
+            $insert_query = "INSERT INTO users (pin, nip, nama, nik, jk, job_title, job_level, bagian, departemen, tl_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?,''))";
             $insert_stmt = mysqli_prepare($mysqli, $insert_query);
 
             if ($insert_stmt) {
-                mysqli_stmt_bind_param($insert_stmt, "sssssssss", $pin, $nip, $nama, $nik, $jk, $job_title, $job_level, $bagian, $departemen);
+                // Bind satu kali dengan 10 parameter (termasuk tl_id)
+                mysqli_stmt_bind_param($insert_stmt, "ssssssssss", $pin, $nip, $nama, $nik, $jk, $job_title, $job_level, $bagian, $departemen, $tl_id);
 
                 if (mysqli_stmt_execute($insert_stmt)) {
                     $success_count++;
@@ -578,17 +579,18 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                         <div class="user-card">
                             <div class="user-card-header">
                                 <span>👤</span>
-                                User <?= $index + 1 ?> - PIN: <?= htmlspecialchars($user['pin']) ?>
+                                <strong>
+                                User <?= $index + 1 ?> - PIN: <?= htmlspecialchars($user['pin']) ?><?= $index + 1 ?> - Nama: <?= htmlspecialchars($user['nama']) ?>
+                                </strong>
                             </div>
 
                             <div class="user-card-body">
                                 <div class="form-grid">
-                                    <div class="form-group">
+                                    <div class="form-group" style="display:none;">
                                         <label class="form-label required">PIN</label>
-                                        <input type="text" name="users[<?= $index ?>][pin]"
-                                            value="<?= htmlspecialchars($user['pin']) ?>" class="form-control" disabled>
                                         <input type="hidden" name="users[<?= $index ?>][pin]"
                                             value="<?= htmlspecialchars($user['pin']) ?>">
+                                        <input type="text" value="<?= htmlspecialchars($user['pin']) ?>" class="form-control" disabled>
                                     </div>
 
                                     <div class="form-group">
@@ -661,6 +663,43 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                                                     <?= $departemen ?>
                                                 </option>
                                             <?php endforeach; ?>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <?php $sel_tl = isset($user['tl_id']) ? (string)$user['tl_id'] : ''; ?>
+                                        <label class="form-label">TL (Team Leader)</label>
+                                        <select name="users[<?= $index ?>][tl_id]" class="form-control">
+                                            <option value="" <?= $sel_tl === '' ? 'selected' : '' ?>>- Tidak Ada -</option>
+                                            <optgroup label="CABUT">
+                                                <option value="8" <?= $sel_tl === '8' ? 'selected' : '' ?>>Karyawati</option>
+                                                <option value="3" <?= $sel_tl === '3' ? 'selected' : '' ?>>Sri Utami</option>
+                                                <option value="2" <?= $sel_tl === '2' ? 'selected' : '' ?>>ST Nur Farokah</option>
+                                                <option value="25" <?= $sel_tl === '25' ? 'selected' : '' ?>>Fhilis Sulestari</option>
+                                                <option value="22" <?= $sel_tl === '22' ? 'selected' : '' ?>>Muhammad Regatana Hidayatulloh</option>
+                                                <option value="119" <?= $sel_tl === '119' ? 'selected' : '' ?>>Zusita Arsdhia Indrayani</option>
+                                                <option value="34" <?= $sel_tl === '34' ? 'selected' : '' ?>>Wahyu Surodo</option>
+                                                <option value="60" <?= $sel_tl === '60' ? 'selected' : '' ?>>Lutfi Dwi Firmansyah</option>
+                                                <option value="109" <?= $sel_tl === '109' ? 'selected' : '' ?>>Ruliatul Fidiah</option>
+                                            </optgroup>
+
+                                            <optgroup label="Cetak">
+                                                <option value="57" <?= $sel_tl === '57' ? 'selected' : '' ?>>Muhammad Tamamur Ridlwan</option>
+                                                <option value="53" <?= $sel_tl === '53' ? 'selected' : '' ?>>Abdul Rouf Khoiri</option>
+                                                <option value="7" <?= $sel_tl === '7' ? 'selected' : '' ?>>Anita</option>
+                                                <option value="24" <?= $sel_tl === '24' ? 'selected' : '' ?>>Patur Albertino</option>
+                                                <option value="27" <?= $sel_tl === '27' ? 'selected' : '' ?>>Anas Ja'far</option>
+                                                <option value="48" <?= $sel_tl === '48' ? 'selected' : '' ?>>M.Jamaludin</option>
+                                                <option value="99" <?= $sel_tl === '99' ? 'selected' : '' ?>>Nila Widya Sari</option>
+                                                <option value="113" <?= $sel_tl === '113' ? 'selected' : '' ?>>Nurul Izzuddin</option>
+                                            </optgroup>
+
+                                            <optgroup label="Dan Lain lain">
+                                                <option value="1" <?= $sel_tl === '1' ? 'selected' : '' ?>>Anik</option>
+                                                <option value="98" <?= $sel_tl === '98' ? 'selected' : '' ?>>M Gaung Sidiq</option>
+                                                <option value="40" <?= $sel_tl === '40' ? 'selected' : '' ?>>Cankiswan</option>
+                                                <option value="118" <?= $sel_tl === '118' ? 'selected' : '' ?>>Kerinna</option>
+                                            </optgroup>
                                         </select>
                                     </div>
 
