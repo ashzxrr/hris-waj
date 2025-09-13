@@ -61,6 +61,7 @@ if (isset($_POST['exportBtn'])) {
         exit;
     }
 }
+// Excel export removed to keep the page PHP-only and avoid missing PhpSpreadsheet dependency
 
 require __DIR__ . '/../../includes/header.php';
 
@@ -76,7 +77,7 @@ function get_nip_data_from_db($mysqli, $pins)
     }
 
     $pin_list = implode(',', array_map('intval', $pins));
-    $sql = "SELECT pin, nip, nama, bagian, nik, jk, job_title, job_level, bagian, departemen FROM users WHERE pin IN ($pin_list)";
+    $sql = "SELECT pin, nip, nama, bagian, nik, jk, job_title, job_level, bagian, departemen, kategori_gaji FROM users WHERE pin IN ($pin_list)";
     $res = mysqli_query($mysqli, $sql);
     if ($res) {
         while ($row = mysqli_fetch_assoc($res)) {
@@ -89,6 +90,8 @@ function get_nip_data_from_db($mysqli, $pins)
                 'job_level' => $row['job_level'],
                 'bagian' => $row['bagian'],
                 'departemen' => $row['departemen']
+                ,
+                'kategori_gaji' => $row['kategori_gaji'] ?? ''
             ];
         }
     }
@@ -201,6 +204,7 @@ foreach ($selected_users as $pin) {
         'job_level' => $nip_data[$pin]['job_level'] ?? '-',
         'bagian' => $nip_data[$pin]['bagian'] ?? '-',
         'departemen' => $nip_data[$pin]['departemen'] ?? '-',
+        'kategori_gaji' => $nip_data[$pin]['kategori_gaji'] ?? '-',
         'present' => 0,
         'no_absen' => 0,
         'A' => 0,
@@ -409,13 +413,15 @@ if (isset($_POST['save_notes'])) {
         }
 
         .btn-primary {
-            background: linear-gradient(90deg, var(--primary-1), var(--primary-2));
+            background: linear-gradient(90deg, #28a745, #20c997);
             color: #fff;
-            box-shadow: 0 8px 20px rgba(92, 157, 255, 0.18);
+            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.18);
         }
 
         .btn-primary:hover {
-            box-shadow: 0 12px 28px rgba(92, 157, 255, 0.22);
+            box-shadow: 0 12px 28px rgba(40, 167, 69, 0.22);
+            transform: translateY(-1px);
+
         }
 
         .btn-success {
@@ -662,6 +668,9 @@ if (isset($_POST['save_notes'])) {
             var jabatan = (user.job_title || '-') + (user.job_level && user.job_level !== '-' ? ' (' + user.job_level + ')' : '');
             document.getElementById('modalJabatan').textContent = jabatan;
 
+            // Kategori Gaji
+            document.getElementById('modalKategoriGaji').textContent = user.kategori_gaji || '-';
+
             // Update summary numbers
             document.getElementById('modalPresent').textContent = user.present;
             document.getElementById('modalNoAbsen').textContent = user.no_absen;
@@ -756,7 +765,7 @@ if (isset($_POST['save_notes'])) {
         | 👥 <?= count($selected_users) ?> User Dipilih
     </div>
 
-    <!-- Action Buttons -->
+    <!-- Updated Action Buttons section -->
     <div style="margin-bottom: 15px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <a href="?page=attends" class="btn btn-secondary">⬅️ Kembali</a>
 
@@ -770,11 +779,16 @@ if (isset($_POST['save_notes'])) {
                 <input type="hidden" name="tanggal_sampai" value="<?= htmlspecialchars($tanggal_sampai) ?>">
                 <button type="submit" name="exportBtn" class="btn btn-success">
                     <span class="spinner" style="display:none"></span>
-                    📥 Export CSV
+                    � Export CSV
+                </button>
+            </form>
+                    <span class="spinner" style="display:none"></span>
+                    📊 Export Excel
                 </button>
             </form>
         <?php endif; ?>
     </div>
+
 
     <!-- Summary Modal -->
     <div id="summaryModal" class="modal">
@@ -806,6 +820,10 @@ if (isset($_POST['save_notes'])) {
                     <div class="info-row">
                         <span class="info-label">Jabatan:</span>
                         <span class="info-value" id="modalJabatan">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Kategori Gaji:</span>
+                        <span class="info-value" id="modalKategoriGaji">-</span>
                     </div>
                 </div>
 
@@ -861,8 +879,10 @@ if (isset($_POST['save_notes'])) {
 
         <div style="margin-bottom:10px; display:flex; gap:8px; align-items:center; justify-content:space-between;">
             <div>
-                <input id="searchInput" type="search" placeholder="Cari PIN atau Nama..." style="padding:8px 10px; border:1px solid #d1d5db; border-radius:6px; min-width:260px;">
-                <span style="margin-left:8px; color:#6b7280;">Jumlah: <strong id="userCount"><?= count($selected_users) ?></strong></span>
+                <input id="searchInput" type="search" placeholder="Cari PIN atau Nama..."
+                    style="padding:8px 10px; border:1px solid #d1d5db; border-radius:6px; min-width:260px;">
+                <span style="margin-left:8px; color:#6b7280;">Jumlah: <strong
+                        id="userCount"><?= count($selected_users) ?></strong></span>
             </div>
             <!-- Save button removed (keterangan now read-only) -->
         </div>
@@ -1001,8 +1021,8 @@ if (isset($_POST['save_notes'])) {
                                     . '<td>' . $keterangan_html . '</td>'
                                     . '<td><button type="button" class="btn btn-info btn-sm" onclick="openSummaryModal(\'' . htmlspecialchars($pin) . '\')">Detail</button></td>'
                                     . '</tr>';
-                                }
                             }
+                        }
 
                     }
                     ?>

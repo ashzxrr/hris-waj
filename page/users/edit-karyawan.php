@@ -524,57 +524,39 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                             </select>
                         </div>
 
-                        <!-- added: TL filter select grouped with other filters (non-functional JS hook kept) -->
-                        <div class="filters-group" style="margin:12px 0;">
-                            <label for="tlFilter"
-                                style="display:block;margin-bottom:6px;font-weight:600;color:#6b7280">Filter TL</label>
-                            <select class="filter-select" id="tlFilter" onchange="filterByTL(this.value)">
-
-                                <option value="none">❌ Tanpa TL</option>
+                        <!-- TL select: this field is saved as users[...][tl_id] -->
+                        <div style="margin:12px 0;">
+                            <label style="display:block;margin-bottom:6px;font-weight:600;color:#6b7280">Team Leader (TL)</label>
+                            <select name="users[<?= $i ?>][tl_id]">
+                                <option value="">- Tanpa TL -</option>
                                 <optgroup label="CABUT">
                                     <option value="8" <?= (string)($u['tl_id'] ?? '') === '8' ? 'selected' : '' ?>>Karyawati</option>
                                     <option value="3" <?= (string)($u['tl_id'] ?? '') === '3' ? 'selected' : '' ?>>Sri Utami</option>
-                                    <option value="2" <?= (string)($u['tl_id'] ?? '') === '2' ? 'selected' : '' ?>>ST Nur Farokah
-                                    </option>
-                                    <option value="25" <?= (string)($u['tl_id'] ?? '') === '25' ? 'selected' : '' ?>>Fhilis Sulestari
-                                    </option>
-                                    <option value="22" <?= (string)($u['tl_id'] ?? '') === '22' ? 'selected' : '' ?>>Muhammad Regatana
-                                        Hidayatulloh</option>
-                                    <option value="119" <?= (string)($u['tl_id'] ?? '') === '119' ? 'selected' : '' ?>>Zusita Arsdhia
-                                        Indrayani</option>
-                                    <option value="34" <?= (string)($u['tl_id'] ?? '') === '34' ? 'selected' : '' ?>>Wahyu Surodo
-                                    </option>
-                                    <option value="60" <?= (string)($u['tl_id'] ?? '') === '60' ? 'selected' : '' ?>>Lutfi Dwi
-                                        Firmansyah</option>
-                                    <option value="109" <?= (string)($u['tl_id'] ?? '') === '109' ? 'selected' : '' ?>>Ruliatul Fidiah
-                                    </option>
+                                    <option value="2" <?= (string)($u['tl_id'] ?? '') === '2' ? 'selected' : '' ?>>ST Nur Farokah</option>
+                                    <option value="25" <?= (string)($u['tl_id'] ?? '') === '25' ? 'selected' : '' ?>>Fhilis Sulestari</option>
+                                    <option value="22" <?= (string)($u['tl_id'] ?? '') === '22' ? 'selected' : '' ?>>Muhammad Regatana Hidayatulloh</option>
+                                    <option value="119" <?= (string)($u['tl_id'] ?? '') === '119' ? 'selected' : '' ?>>Zusita Arsdhia Indrayani</option>
+                                    <option value="34" <?= (string)($u['tl_id'] ?? '') === '34' ? 'selected' : '' ?>>Wahyu Surodo</option>
+                                    <option value="60" <?= (string)($u['tl_id'] ?? '') === '60' ? 'selected' : '' ?>>Lutfi Dwi Firmansyah</option>
+                                    <option value="109" <?= (string)($u['tl_id'] ?? '') === '109' ? 'selected' : '' ?>>Ruliatul Fidiah</option>
                                 </optgroup>
-
-                                <optgroup label="Cetak">
+                                <optgroup label="CETAK">
                                     <option value="8" <?= (string)($u['tl_id'] ?? '') === '8' ? 'selected' : '' ?>>Karyawati</option>
                                     <option value="3" <?= (string)($u['tl_id'] ?? '') === '3' ? 'selected' : '' ?>>Sri Utami</option>
-                                    <option value="2" <?= (string)($u['tl_id'] ?? '') === '2' ? 'selected' : '' ?>>ST Nur Farokah
-                                    </option>
-                                    <option value="25" <?= (string)($u['tl_id'] ?? '') === '25' ? 'selected' : '' ?>>Fhilis Sulestari
-                                    </option>
-                                    <option value="22" <?= (string)($u['tl_id'] ?? '') === '22' ? 'selected' : '' ?>>Muhammad Regatana
-                                        Hidayatulloh</option>
-                                    <option value="119" <?= (string)($u['tl_id'] ?? '') === '119' ? 'selected' : '' ?>>Zusita Arsdhia
-                                        Indrayani</option>
-                                    <option value="34" <?= (string)($u['tl_id'] ?? '') === '34' ? 'selected' : '' ?>>Wahyu Surodo
-                                    </option>
-                                    <option value="60" <?= (string)($u['tl_id'] ?? '') === '60' ? 'selected' : '' ?>>Lutfi Dwi
-                                        Firmansyah</option>
-                                    <option value="109" <?= (string)($u['tl_id'] ?? '') === '109' ? 'selected' : '' ?>>Ruliatul Fidiah
-                                    </option>
+                                    <option value="2" <?= (string)($u['tl_id'] ?? '') === '2' ? 'selected' : '' ?>>ST Nur Farokah</option>
+                                    <option value="25" <?= (string)($u['tl_id'] ?? '') === '25' ? 'selected' : '' ?>>Fhilis Sulestari</option>
+                                    <option value="22" <?= (string)($u['tl_id'] ?? '') === '22' ? 'selected' : '' ?>>Muhammad Regatana Hidayatulloh</option>
+                                    <option value="119" <?= (string)($u['tl_id'] ?? '') === '119' ? 'selected' : '' ?>>Zusita Arsdhia Indrayani</option>
+                                    <option value="34" <?= (string)($u['tl_id'] ?? '') === '34' ? 'selected' : '' ?>>Wahyu Surodo</option>
+                                    <option value="60" <?= (string)($u['tl_id'] ?? '') === '60' ? 'selected' : '' ?>>Lutfi Dwi Firmansyah</option>
+                                    <option value="109" <?= (string)($u['tl_id'] ?? '') === '109' ? 'selected' : '' ?>>Ruliatul Fidiah</option>
                                 </optgroup>
-
-                                <optgroup label="Dan Lain lain">
+                                <optgroup label="LAINNYA">
                                     <option value="1" <?= (string)($u['tl_id'] ?? '') === '1' ? 'selected' : '' ?>>Anik</option>
-                                    <option value="98" <?= (string)($u['tl_id'] ?? '') === '98' ? 'selected' : '' ?>>M Gaung Sidiq
-                                    </option>
+                                    <option value="98" <?= (string)($u['tl_id'] ?? '') === '98' ? 'selected' : '' ?>>M Gaung Sidiq</option>
                                     <option value="40" <?= (string)($u['tl_id'] ?? '') === '40' ? 'selected' : '' ?>>Cankiswan</option>
                                     <option value="118" <?= (string)($u['tl_id'] ?? '') === '118' ? 'selected' : '' ?>>Kerinna</option>
+                                    <option value="63" <?= (string)($u['tl_id'] ?? '') === '63' ? 'selected' : '' ?>>Puput Indarwati</option>
                                 </optgroup>
                             </select>
                         </div>

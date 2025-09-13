@@ -651,7 +651,7 @@ foreach ($database_users as $row) {
             let visibleCount = 0;
 
             tableRows.forEach(row => {
-                const bagianCell = (row.cells[10] && row.cells[10].textContent) ? row.cells[10].textContent.toLowerCase() : '';
+                const bagianCell = (row.cells[11] && row.cells[11].textContent) ? row.cells[11].textContent.toLowerCase() : '';
                 const matchBagian = currentBagian === 'all' || bagianCell === currentBagian.toLowerCase();
 
                 // Use data attribute for tl id matching (more reliable than comparing names)
@@ -718,7 +718,7 @@ foreach ($database_users as $row) {
                                     if (th.textContent.trim().toLowerCase() === 'nip') nipIndex = i;
                                 });
                             }
-                            if (nipIndex === -1) nipIndex = 5; // legacy fallback
+                            if (nipIndex === -1) nipIndex = 6; // legacy fallback (NIP is now at index 6)
                             const nipCell = tr.cells[nipIndex];
                             if (nipCell) nipVal = nipCell.textContent.trim();
                         } catch (e) {
@@ -971,6 +971,7 @@ foreach ($database_users as $row) {
                             <option value="98">M Gaung Sidiq</option>
                             <option value="40">Cankiswan</option>
                             <option value="118">Kerinna</option>
+                            <option value="63">Puput Indarwati</option>
                         </optgroup>
                     </select>
                 </div>
