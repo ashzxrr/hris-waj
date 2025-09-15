@@ -156,131 +156,184 @@ function exportToCsv($data_absen, $filename = null, $pinOrder = null) {
         // Add BOM untuk proper UTF-8 encoding di Excel
         fwrite($output, "\xEF\xBB\xBF");
         
-        // Header CSV — match the detail table columns (including Kategori Gaji)
+        // Header CSV sesuai dengan tabel
         fputcsv($output, [
             'No',
-            'PIN',
-            'NIP',
+            'NIP', 
             'Nama',
-            'Kategori Gaji',
-            'Jenis Kelamin',
+            'L/P',
             'Jabatan',
+            'Kategori Gaji',
             'Tanggal',
             'In',
-            'Out',
-            'Overtime (menit)',
-            'Keterangan'
+            'Out', 
+            'Overtime',
+            'Keterangan',
+            'Ringkasan'
         ]);
 
-        // Aggregate data per PIN + date to match the table view
-        $groups = [];
-        foreach ($data_absen as $record) {
-            $pin = $record['pin'] ?? '-';
-            $dt = $record['datetime'] ?? null;
-            $date = $dt ? date('Y-m-d', strtotime($dt)) : '-';
-
-            if (!isset($groups[$pin][$date])) {
-                $groups[$pin][$date] = [
-                    'pin' => $pin,
-                    'nip' => $record['nip'] ?? '-',
-                    'nama' => $record['nama'] ?? '-',
-                    'kategori_gaji' => $record['kategori_gaji'] ?? ($record['kategori_gaji'] ?? '-'),
-                    'jk' => $record['jk'] ?? '-',
-                    'job_title' => $record['job_title'] ?? '',
-                    'job_level' => $record['job_level'] ?? '',
-                    'in_times' => [],
-                    'out_times' => [],
-                    'keterangan' => $record['code'] ?? ''
-                ];
-            }
-
-            if (!empty($dt)) {
-                $ts = strtotime($dt);
-                // Treat status 'IN' as in_times, others as out_times
-                $status = strtoupper($record['status'] ?? '');
-                if ($status === 'IN') $groups[$pin][$date]['in_times'][] = $ts;
-                else $groups[$pin][$date]['out_times'][] = $ts;
+        // Get selected users and date range from POST data
+        global $selected_users, $tanggal_dari, $tanggal_sampai, $nip_data, $absence_notes;
+        
+        // Calculate summary data per user (sama seperti di modal)
+        $per_user_summary = [];
+        
+        // Initialize summary for each user
+        foreach ($selected_users as $pin) {
+            $per_user_summary[$pin] = [
+                'present' => 0,
+                'no_absen' => 0, 
+                'A' => 0,
+                'S' => 0,
+                'I' => 0
+            ];
+        }
+        
+        // Build attendance index for quick lookup
+        $attendance_index = [];
+        foreach ($data_absen as $rec) {
+            $d = date('Y-m-d', strtotime($rec['datetime']));
+            $p = $rec['pin'];
+            $attendance_index[$p][$d] = true;
+        }
+        
+        // Calculate summary over the period
+        $periode = new DatePeriod(
+            new DateTime($tanggal_dari), 
+            new DateInterval('P1D'), 
+            (new DateTime($tanggal_sampai))->modify('+1 day')
+        );
+        
+        foreach ($selected_users as $pin) {
+            foreach ($periode as $d) {
+                $ds = $d->format('Y-m-d');
+                $is_sunday = (date('N', strtotime($ds)) == 7);
+                $has_attendance = isset($attendance_index[$pin]) && !empty($attendance_index[$pin][$ds]);
+                
+                if ($has_attendance) {
+                    $per_user_summary[$pin]['present']++;
+                } else {
+                    // don't count Sundays as no-absen
+                    if (!$is_sunday) {
+                        $per_user_summary[$pin]['no_absen']++;
+                        $code = $absence_notes[$pin][$ds] ?? '';
+                        if ($code && isset($per_user_summary[$pin][$code])) {
+                            $per_user_summary[$pin][$code]++;
+                        }
+                    }
+                }
             }
         }
-
-        // If a specific pin order is provided, honor it: for each pin in pinOrder, write that pin's dates ascending
+        
+        // Generate rows sesuai dengan urutan di tabel
         $rowNo = 1;
-        if (!empty($pinOrder) && is_array($pinOrder)) {
-            foreach ($pinOrder as $pin) {
-                if (!isset($groups[$pin])) continue;
-                $dates = $groups[$pin];
-                ksort($dates);
-                foreach ($dates as $date => $g) {
-                    $in_ts = !empty($g['in_times']) ? min($g['in_times']) : null;
-                    $out_ts = !empty($g['out_times']) ? max($g['out_times']) : null;
+        
+        foreach ($selected_users as $pin) {
+            foreach ($periode as $tgl) {
+                $tanggal_str = $tgl->format('Y-m-d');
+                $records_on_date = array_filter($data_absen, function ($item) use ($pin, $tanggal_str) {
+                    return $item['pin'] == $pin && date('Y-m-d', strtotime($item['datetime'])) == $tanggal_str;
+                });
 
-                    $in_display = $in_ts ? date('H:i:s', $in_ts) : '-';
-                    $out_display = $out_ts ? date('H:i:s', $out_ts) : '-';
-
-                    // Overtime in minutes after 16:30
-                    if ($out_ts) {
-                        $threshold = strtotime($date . ' 16:30:00');
-                        $overtime_minutes = $out_ts > $threshold ? floor(($out_ts - $threshold) / 60) : 0;
-                    } else {
-                        $overtime_minutes = '';
+                // Get user info
+                $nip = $nip_data[$pin]['nip'] ?? '-';
+                $nama = $nip_data[$pin]['nama'] ?? '-';
+                $jk = $nip_data[$pin]['jk'] ?? '-';
+                $job_title = $nip_data[$pin]['job_title'] ?? '-';
+                $job_level = $nip_data[$pin]['job_level'] ?? '-';
+                $kategori_gaji = $nip_data[$pin]['kategori_gaji'] ?? '-';
+                
+                // Format jabatan
+                $jabatan = trim($job_title . ' ' . ($job_level && $job_level !== '-' ? '(' . $job_level . ')' : ''));
+                if ($jabatan === '') $jabatan = '-';
+                
+                // Format tanggal
+                $tanggal_display = date('d/m/Y', strtotime($tanggal_str));
+                
+                // Generate summary text (hanya untuk baris pertama user ini)
+                $ringkasan = '';
+                static $processed_users = [];
+                if (!in_array($pin, $processed_users)) {
+                    $summary = $per_user_summary[$pin];
+                    $ringkasan = sprintf(
+                        "Total Hadir: %d | Tidak Absen: %d | Alpha (A): %d | Sakit (S): %d | Ijin (I): %d",
+                        $summary['present'],
+                        $summary['no_absen'], 
+                        $summary['A'],
+                        $summary['S'],
+                        $summary['I']
+                    );
+                    $processed_users[] = $pin;
+                }
+                
+                if (!empty($records_on_date)) {
+                    // Ada record absensi
+                    // Collect IN and OUT times
+                    $in_times = [];
+                    $out_times = [];
+                    foreach ($records_on_date as $record) {
+                        $ts = strtotime($record['datetime']);
+                        if (strtoupper($record['status']) === 'IN') {
+                            $in_times[] = $ts;
+                        } else {
+                            $out_times[] = $ts;
+                        }
                     }
 
-                    $jabatan = trim(($g['job_title'] ?? '') . ' ' . (!empty($g['job_level']) && $g['job_level'] !== '-' ? '(' . $g['job_level'] . ')' : '')) ?: '-';
-                    $keterangan = $g['keterangan'] !== '' ? $g['keterangan'] : '-';
+                    $in_ts = !empty($in_times) ? min($in_times) : null;
+                    $out_ts = !empty($out_times) ? max($out_times) : null;
 
-                    fputcsv($output, [
-                        $rowNo++,
-                        $g['pin'] ?? '-',
-                        $g['nip'] ?? '-',
-                        $g['nama'] ?? '-',
-                        $g['kategori_gaji'] ?? '-',
-                        $g['jk'] ?? '-',
-                        $jabatan,
-                        $date === '-' ? '-' : date('d/m/Y', strtotime($date)),
-                        $in_display,
-                        $out_display,
-                        $overtime_minutes,
-                        $keterangan
-                    ]);
-                }
-            }
-        } else {
-            // Default behavior: iterate pins in groups and sort by date ascending per pin
-            foreach ($groups as $pin => $dates) {
-                ksort($dates);
-                foreach ($dates as $date => $g) {
-                    $in_ts = !empty($g['in_times']) ? min($g['in_times']) : null;
-                    $out_ts = !empty($g['out_times']) ? max($g['out_times']) : null;
+                    $in_display = $in_ts ? date('H:i', $in_ts) : '-';
+                    $out_display = $out_ts ? date('H:i', $out_ts) : '-';
 
-                    $in_display = $in_ts ? date('H:i:s', $in_ts) : '-';
-                    $out_display = $out_ts ? date('H:i:s', $out_ts) : '-';
-
-                    // Overtime in minutes after 16:30
+                    // Calculate overtime
                     if ($out_ts) {
-                        $threshold = strtotime($date . ' 16:30:00');
+                        $threshold = strtotime($tanggal_str . ' 16:30:00');
                         $overtime_minutes = $out_ts > $threshold ? floor(($out_ts - $threshold) / 60) : 0;
+                        $overtime_display = $overtime_minutes > 0 ? $overtime_minutes . ' menit' : '';
                     } else {
-                        $overtime_minutes = '';
+                        $overtime_display = '';
                     }
-
-                    $jabatan = trim(($g['job_title'] ?? '') . ' ' . (!empty($g['job_level']) && $g['job_level'] !== '-' ? '(' . $g['job_level'] . ')' : '')) ?: '-';
-                    $keterangan = $g['keterangan'] !== '' ? $g['keterangan'] : '-';
-
-                    fputcsv($output, [
-                        $rowNo++,
-                        $g['pin'] ?? '-',
-                        $g['nip'] ?? '-',
-                        $g['nama'] ?? '-',
-                        $g['kategori_gaji'] ?? '-',
-                        $g['jk'] ?? '-',
-                        $jabatan,
-                        $date === '-' ? '-' : date('d/m/Y', strtotime($date)),
-                        $in_display,
-                        $out_display,
-                        $overtime_minutes,
-                        $keterangan
-                    ]);
+                    
+                    $keterangan = '----';
+                    
+                } else {
+                    // Tidak ada record
+                    $in_display = '-';
+                    $out_display = '-';
+                    $overtime_display = '';
+                    
+                    // Check if Sunday
+                    $hari = getNamaHari($tanggal_str);
+                    if ($hari === 'Minggu') {
+                        $keterangan = 'Minggu';
+                    } else {
+                        // Check absence code
+                        $existing_code = $absence_notes[$pin][$tanggal_str] ?? '';
+                        $code_labels = [
+                            'S' => 'S (Sakit)',
+                            'A' => 'A (Alpha)', 
+                            'I' => 'I (Ijin)'
+                        ];
+                        $keterangan = !empty($existing_code) ? ($code_labels[$existing_code] ?? $existing_code) : '-';
+                    }
                 }
+
+                // Write CSV row
+                fputcsv($output, [
+                    $rowNo++,
+                    $nip,
+                    $nama, 
+                    $jk,
+                    $jabatan,
+                    $kategori_gaji,
+                    $tanggal_display,
+                    $in_display,
+                    $out_display,
+                    $overtime_display,
+                    $keterangan,
+                    $ringkasan
+                ]);
             }
         }
         
@@ -300,7 +353,6 @@ function exportToCsv($data_absen, $filename = null, $pinOrder = null) {
     
     exit();
 }
-
 // Helper function untuk format tanggal Indonesia
 function formatTanggalIndonesia($tanggal) {
     $bulan = [
@@ -316,4 +368,5 @@ function formatTanggalIndonesia($tanggal) {
     
     return $hari . ' ' . $bulan[$bulan_idx] . ' ' . $tahun;
 }
+
 ?>
