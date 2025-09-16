@@ -38,6 +38,20 @@ try {
 } catch (Exception $e) {
     error_log($e->getMessage());
 }
+
+// Ambil nama pengguna dari tabel user_login berdasarkan session user_id
+$logged_name = '';
+if (!empty($_SESSION['user_id'])) {
+    $uid = $mysqli->real_escape_string($_SESSION['user_id']);
+    $sql = "SELECT nama FROM users_login WHERE id = '" . $uid . "' LIMIT 1";
+    if ($res = $mysqli->query($sql)) {
+        $row = $res->fetch_assoc();
+        if ($row && !empty($row['nama'])) {
+            $logged_name = $row['nama'];
+        }
+        $res->free();
+    }
+}
 ?>
 <style>
     .content-wrapper {
@@ -201,6 +215,13 @@ try {
     <div class="container">
         <div class="content-wrapper">
             <div class="row justify-content-start g-4">
+                <div class="col-12 mb-3">
+                    <?php if (!empty($logged_name)): ?>
+                        <h4 style="margin:0 0 8px 0">Halo, <?= htmlspecialchars($logged_name) ?> 👋</h4>
+                    <?php else: ?>
+                        <h4 style="margin:0 0 8px 0">Halo, Selamat Datang 👋</h4>
+                    <?php endif; ?>
+                </div>
 
                 <!-- Card 1 -->
                 <div class="col-md-3 col-sm-6 mb-4">
