@@ -249,7 +249,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         <a class="nav-link" href="?page=payroll">Gaji</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="?page=">About</a>
+                        <a class="nav-link" href="?page=about">About</a>
                     </li>
                     <?php if (isset($_SESSION['user_id'])): ?>
                         <li class="nav-item">
