@@ -18,81 +18,131 @@ function getSoapResponse($ip, $port, $soap_request) {
     return $buffer;
 }
 
-function getUsers($ip, $port, $key) {
-    $soap_user = "<GetAllUserInfo>
-        <ArgComKey xsi:type=\"xsd:integer\">$key</ArgComKey>
-    </GetAllUserInfo>";
+/**
+ * MODIFIED: Auto combined dari SEMUA mesin aktif
+ * Function signature tetap sama untuk backward compatibility
+ */
+function getUsers($ip = null, $port = null, $key = null) {
+    global $machines;
+    $allUsers = [];
+    
+    foreach ($machines as $machine) {
+        if (!$machine['active']) continue;
+        
+        // Test koneksi dulu
+        $connection = @fsockopen($machine['ip'], $machine['port'], $errno, $errstr, 5);
+        if (!$connection) {
+            error_log("Cannot connect to {$machine['name']}: {$errstr}");
+            continue;
+        }
+        fclose($connection);
+        
+        // Get users dari mesin ini
+        $soap_user = "<GetAllUserInfo>
+            <ArgComKey xsi:type=\"xsd:integer\">{$machine['key']}</ArgComKey>
+        </GetAllUserInfo>";
 
-    $response_user = getSoapResponse($ip, $port, $soap_user);
-    $users = [];
-
-    if ($response_user && strpos($response_user, '<Row>') !== false) {
-        preg_match_all('/<Row>(.*?)<\/Row>/s', $response_user, $matches_user);
-        foreach ($matches_user[1] as $row) {
-            preg_match('/<PIN2>(.*?)<\/PIN2>/', $row, $pin2);
-            preg_match('/<Name>(.*?)<\/Name>/', $row, $name);
-            $users[$pin2[1] ?? ''] = $name[1] ?? '';
+        $response_user = getSoapResponse($machine['ip'], $machine['port'], $soap_user);
+        
+        if ($response_user && strpos($response_user, '<Row>') !== false) {
+            preg_match_all('/<Row>(.*?)<\/Row>/s', $response_user, $matches_user);
+            foreach ($matches_user[1] as $row) {
+                preg_match('/<PIN2>(.*?)<\/PIN2>/', $row, $pin2);
+                preg_match('/<Name>(.*?)<\/Name>/', $row, $name);
+                $pin = $pin2[1] ?? '';
+                $nama = $name[1] ?? '';
+                
+                if ($pin && $nama) {
+                    // Jika user sudah ada dari mesin lain, skip (hindari duplikat)
+                    if (!isset($allUsers[$pin])) {
+                        $allUsers[$pin] = $nama;
+                    }
+                }
+            }
         }
     }
-    return $users;
+    
+    return $allUsers;
 }
 
-// Original function - masih dipertahankan untuk backward compatibility
-function getAttendance($ip, $port, $key, $tanggal_filter, $users) {
-    return getAttendanceRange($ip, $port, $key, $tanggal_filter, $tanggal_filter, $users);
+/**
+ * MODIFIED: Auto combined dari SEMUA mesin aktif  
+ * Original function - tetap untuk backward compatibility
+ */
+function getAttendance($ip = null, $port = null, $key = null, $tanggal_filter = null, $users = null) {
+    return getAttendanceRange(null, null, null, $tanggal_filter, $tanggal_filter, $users);
 }
 
-// New function untuk date range
-function getAttendanceRange($ip, $port, $key, $tanggal_dari, $tanggal_sampai, $users) {
-    $soap_attlog = "<GetAttLog>
-        <ArgComKey xsi:type=\"xsd:integer\">$key</ArgComKey>
-        <Arg><PIN xsi:type=\"xsd:integer\">All</PIN></Arg>
-    </GetAttLog>";
+/**
+ * MODIFIED: Auto combined dari SEMUA mesin aktif
+ * New function untuk date range
+ */
+function getAttendanceRange($ip = null, $port = null, $key = null, $tanggal_dari = null, $tanggal_sampai = null, $users = null) {
+    global $machines;
+    $allAttendance = [];
+    
+    foreach ($machines as $machine) {
+        if (!$machine['active']) continue;
+        
+        // Test koneksi dulu  
+        $connection = @fsockopen($machine['ip'], $machine['port'], $errno, $errstr, 5);
+        if (!$connection) {
+            error_log("Cannot connect to {$machine['name']}: {$errstr}");
+            continue;
+        }
+        fclose($connection);
+        
+        // Get attendance dari mesin ini
+        $soap_attlog = "<GetAttLog>
+            <ArgComKey xsi:type=\"xsd:integer\">{$machine['key']}</ArgComKey>
+            <Arg><PIN xsi:type=\"xsd:integer\">All</PIN></Arg>
+        </GetAttLog>";
 
-    $response_attlog = getSoapResponse($ip, $port, $soap_attlog);
-    $data_absen = [];
+        $response_attlog = getSoapResponse($machine['ip'], $machine['port'], $soap_attlog);
+        
+        if ($response_attlog && strpos($response_attlog, '<Row>') !== false) {
+            preg_match_all('/<Row>(.*?)<\/Row>/s', $response_attlog, $matches_log);
 
-    if ($response_attlog && strpos($response_attlog, '<Row>') !== false) {
-        preg_match_all('/<Row>(.*?)<\/Row>/s', $response_attlog, $matches_log);
+            // Convert tanggal ke timestamp untuk comparison yang lebih efisien
+            $timestamp_dari = strtotime($tanggal_dari);
+            $timestamp_sampai = strtotime($tanggal_sampai . ' 23:59:59'); // Include sampai akhir hari
 
-        // Convert tanggal ke timestamp untuk comparison yang lebih efisien
-        $timestamp_dari = strtotime($tanggal_dari);
-        $timestamp_sampai = strtotime($tanggal_sampai . ' 23:59:59'); // Include sampai akhir hari
+            foreach ($matches_log[1] as $row) {
+                preg_match('/<PIN>(.*?)<\/PIN>/', $row, $pin);
+                preg_match('/<DateTime>(.*?)<\/DateTime>/', $row, $datetime);
+                preg_match('/<Verified>(.*?)<\/Verified>/', $row, $verified);
+                preg_match('/<Status>(.*?)<\/Status>/', $row, $status);
 
-        foreach ($matches_log[1] as $row) {
-            preg_match('/<PIN>(.*?)<\/PIN>/', $row, $pin);
-            preg_match('/<DateTime>(.*?)<\/DateTime>/', $row, $datetime);
-            preg_match('/<Verified>(.*?)<\/Verified>/', $row, $verified);
-            preg_match('/<Status>(.*?)<\/Status>/', $row, $status);
+                $waktu = $datetime[1] ?? '';
+                $tanggal = substr($waktu, 0, 10); // Format: YYYY-MM-DD
+                $timestamp_record = strtotime($waktu);
 
-            $waktu = $datetime[1] ?? '';
-            $tanggal = substr($waktu, 0, 10); // Format: YYYY-MM-DD
-            $timestamp_record = strtotime($waktu);
+                // Check apakah tanggal dalam range
+                if ($timestamp_record >= $timestamp_dari && $timestamp_record <= $timestamp_sampai) {
+                    $pin_val = $pin[1] ?? '';
+                    $nama_val = $users[$pin_val] ?? '(Tidak Diketahui)';
+                    $status_text = ($status[1] ?? '') == "0" ? "IN" : "OUT";
 
-            // Check apakah tanggal dalam range
-            if ($timestamp_record >= $timestamp_dari && $timestamp_record <= $timestamp_sampai) {
-                $pin_val = $pin[1] ?? '';
-                $nama_val = $users[$pin_val] ?? '(Tidak Diketahui)';
-                $status_text = ($status[1] ?? '') == "0" ? "IN" : "OUT";
-
-                $data_absen[] = [
-                    'nama' => $nama_val,
-                    'pin' => $pin_val,
-                    'datetime' => $waktu,
-                    'verified' => $verified[1] ?? '-',
-                    'status' => $status_text,
-                    'tanggal' => $tanggal // Tambahan field untuk kemudahan sorting/grouping
-                ];
+                    $allAttendance[] = [
+                        'nama' => $nama_val,
+                        'pin' => $pin_val,
+                        'datetime' => $waktu,
+                        'verified' => $verified[1] ?? '-',
+                        'status' => $status_text,
+                        'tanggal' => $tanggal, // Tambahan field untuk kemudahan sorting/grouping
+                        'machine_name' => $machine['name'] // Info mesin (opsional)
+                    ];
+                }
             }
         }
     }
 
     // Sort berdasarkan datetime (terbaru dulu)
-    usort($data_absen, function($a, $b) {
+    usort($allAttendance, function($a, $b) {
         return strtotime($b['datetime']) - strtotime($a['datetime']);
     });
 
-    return $data_absen;
+    return $allAttendance;
 }
 
 // Helper function untuk mendapatkan statistik absensi
@@ -353,6 +403,7 @@ function exportToCsv($data_absen, $filename = null, $pinOrder = null) {
     
     exit();
 }
+
 // Helper function untuk format tanggal Indonesia
 function formatTanggalIndonesia($tanggal) {
     $bulan = [
@@ -369,4 +420,27 @@ function formatTanggalIndonesia($tanggal) {
     return $hari . ' ' . $bulan[$bulan_idx] . ' ' . $tahun;
 }
 
+/**
+ * DEBUG FUNCTION - Test koneksi semua mesin (opsional)
+ */
+function testAllMachinesConnection() {
+    global $machines;
+    
+    echo "=== TEST KONEKSI SEMUA MESIN ===\n";
+    foreach ($machines as $machine) {
+        if (!$machine['active']) {
+            echo "- {$machine['name']}: TIDAK AKTIF\n";
+            continue;
+        }
+        
+        $connection = @fsockopen($machine['ip'], $machine['port'], $errno, $errstr, 5);
+        if ($connection) {
+            fclose($connection);
+            echo "✓ {$machine['name']}: ONLINE\n";
+        } else {
+            echo "✗ {$machine['name']}: OFFLINE - {$errstr}\n";
+        }
+    }
+    echo "\n";
+}
 ?>
