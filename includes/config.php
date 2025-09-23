@@ -1,11 +1,35 @@
 <?php
-// Konfigurasi mesin fingerprint via Port Forwarding
-$ip = "192.168.110.2"; // IP Router Tenda (gateway)
-$port = 8080;          // Port forwarding yang sudah diset di router Tenda
-$soap_port = $port;    // Port untuk SOAP communication
-$key = 0;              // Communication key
+/**
+ * ===============================================
+ * KONFIGURASI MULTI MESIN FINGERPRINT
+ * AUTO COMBINED - Data otomatis dari semua mesin
+ * TANPA SWITCH - TANPA PILIH MESIN
+ * ===============================================
+ */
 
-// Database tetap sama (lokal)
+// ===============================================
+// 1. KONFIGURASI MULTI MESIN
+// ===============================================
+$machines = [
+    [
+        'ip' => '192.168.110.2',        // Router Tenda
+        'port' => 8080,                 // Port forwarding existing
+        'key' => 0,
+        'name' => 'Fingerprint Produksi 2A',
+        'active' => true
+    ],
+    [
+        'ip' => '192.168.110.2',        // Router Tenda yang sama  
+        'port' => 8082,                 // Port forwarding baru - PERLU DITAMBAH DI ROUTER
+        'key' => 0,
+        'name' => 'Fingerprint Produksi 2B',
+        'active' => true
+    ]
+];
+
+// ===============================================
+// 2. DATABASE CONFIGURATION
+// ===============================================
 $mysqli = new mysqli("localhost", "root", "", "absensi");
 
 if ($mysqli->connect_errno) {
@@ -17,6 +41,18 @@ $dbUser = "root";
 $dbPass = "";
 $dbName = "absensi";
 
-// Optional: Tambah timeout untuk koneksi yang lebih lama
-ini_set('default_socket_timeout', 2);
+// ===============================================
+// 3. SYSTEM SETTINGS  
+// ===============================================
+ini_set('default_socket_timeout', 10);
+
+// ===============================================
+// 4. BACKWARD COMPATIBILITY VARIABLES
+// ===============================================
+// Variables ini tetap ada supaya kode existing tidak error
+// Tapi tidak dipakai lagi karena sekarang auto combined
+$ip = "192.168.110.2";
+$port = 8080;
+$soap_port = 8080;
+$key = 0;
 ?>
