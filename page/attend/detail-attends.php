@@ -604,13 +604,13 @@ if (isset($_POST['save_notes'])) {
 
         /* Table container - scrollable seperti halaman user */
         .table-container {
-            max-height: 520px;
+            max-height: 700px;
             overflow-y: auto;
             border: 1px solid #e6eefc;
-            border-radius: 10px;
+            border-radius: 5px;
             background: #fff;
             box-shadow: 0 6px 22px rgba(15, 23, 42, 0.04);
-            padding: 8px;
+            padding: 2px;
         }
 
         table {
@@ -623,9 +623,9 @@ if (isset($_POST['save_notes'])) {
         th,
         td {
             border-bottom: 1px solid #f1f5f9;
-            padding: 10px 12px;
+            padding: 6px 8px;
             text-align: left;
-            font-size: 13px;
+            font-size: 10px;
         }
 
         thead th {
@@ -650,6 +650,9 @@ if (isset($_POST['save_notes'])) {
                 min-width: 900px;
             }
         }
+        /* Helpers for search/pagination hiding */
+        .search-hidden { display: none !important; }
+        .page-hidden { display: none !important; }
     </style>
     <script>
         function openSummaryModal(pin) {
@@ -709,9 +712,17 @@ if (isset($_POST['save_notes'])) {
             }
         }
 
+        // Simple client-side pagination + search integration
+        let currentPage = 1;
+        let currentPageSize = 25; // default
+
+        function getAllRows() {
+            return Array.from(document.querySelectorAll('tbody tr'));
+        }
+
         function searchUsers() {
             const searchInput = document.getElementById('searchInput').value.toLowerCase();
-            const tableRows = document.querySelectorAll('tbody tr');
+            const tableRows = getAllRows();
             let visibleCount = 0;
 
             tableRows.forEach(row => {
@@ -720,34 +731,121 @@ if (isset($_POST['save_notes'])) {
                 const checkbox = row.querySelector('input[type="checkbox"]');
 
                 if (pin.includes(searchInput) || nama.includes(searchInput)) {
-                    row.style.display = '';
-                    row.classList.remove('hidden');
+                    row.classList.remove('search-hidden');
                     if (checkbox) checkbox.classList.remove('hidden');
                     visibleCount++;
                 } else {
-                    row.style.display = 'none';
-                    row.classList.add('hidden');
+                    row.classList.add('search-hidden');
                     if (checkbox) {
                         checkbox.classList.add('hidden');
                         checkbox.checked = false; // Uncheck hidden items
                     }
                 }
+                // remove any page-hidden state; pagination will re-apply
+                row.classList.remove('page-hidden');
             });
 
-            // Update counter
             document.getElementById('userCount').textContent = visibleCount;
+            currentPage = 1; // reset to first page after search
+            applyPagination();
 
-            // Reset "Pilih Semua" checkbox
+            // Reset "Pilih Semua" checkbox if present
             const selectAll = document.querySelector('input[onchange="toggleAll(this)"]');
             if (selectAll) selectAll.checked = false;
         }
 
-        // Auto search saat mengetik
+        function applyPagination() {
+            const rows = getAllRows();
+            const matched = rows.filter(r => !r.classList.contains('search-hidden'));
+
+            if (currentPageSize === -1) {
+                // show all matched rows
+                matched.forEach(r => r.classList.remove('page-hidden'));
+                renderPagination(matched.length, 1);
+                return;
+            }
+
+            const total = matched.length;
+            const totalPages = Math.max(1, Math.ceil(total / currentPageSize));
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            const start = (currentPage - 1) * currentPageSize;
+            const end = start + currentPageSize;
+
+            matched.forEach((r, idx) => {
+                if (idx >= start && idx < end) {
+                    r.classList.remove('page-hidden');
+                } else {
+                    r.classList.add('page-hidden');
+                }
+            });
+
+            renderPagination(total, totalPages);
+        }
+
+        function renderPagination(totalItems, totalPages) {
+            const container = document.getElementById('pagination');
+            if (!container) return;
+            // If showing all, hide pager
+            if (currentPageSize === -1 || totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            html += `<button class="btn btn-secondary btn-sm" data-page="${Math.max(1, currentPage-1)}" ${currentPage===1? 'disabled' : ''}>Prev</button>`;
+
+            // show up to 7 page buttons centered around current
+            const maxButtons = 7;
+            let startPage = Math.max(1, currentPage - Math.floor(maxButtons/2));
+            let endPage = Math.min(totalPages, startPage + maxButtons -1);
+            if (endPage - startPage < maxButtons -1) {
+                startPage = Math.max(1, endPage - maxButtons +1);
+            }
+
+            for (let p = startPage; p <= endPage; p++) {
+                html += `<button class="btn btn-secondary btn-sm" data-page="${p}" ${p===currentPage? 'disabled' : ''}>${p}</button>`;
+            }
+
+            html += `<button class="btn btn-secondary btn-sm" data-page="${Math.min(totalPages, currentPage+1)}" ${currentPage===totalPages? 'disabled' : ''}>Next</button>`;
+
+            container.innerHTML = html;
+
+            // attach event listeners
+            container.querySelectorAll('button[data-page]').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const p = parseInt(this.getAttribute('data-page'));
+                    if (!isNaN(p)) {
+                        currentPage = p;
+                        applyPagination();
+                        // scroll table container to top for better UX
+                        const tc = document.querySelector('.table-container');
+                        if (tc) tc.scrollTop = 0;
+                    }
+                });
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             const searchInput = document.getElementById('searchInput');
             if (searchInput) {
                 searchInput.addEventListener('input', searchUsers);
             }
+
+            const pageSizeSelect = document.getElementById('pageSizeSelect');
+            if (pageSizeSelect) {
+                pageSizeSelect.addEventListener('change', function () {
+                    const v = this.value;
+                    currentPageSize = v === 'all' ? -1 : parseInt(v, 10);
+                    currentPage = 1;
+                    applyPagination();
+                });
+            }
+
+            // initialize
+            const initial = document.getElementById('userCount');
+            if (initial) initial.textContent = getAllRows().length;
+            applyPagination();
         });
     </script>
 </head>
@@ -878,13 +976,23 @@ if (isset($_POST['save_notes'])) {
         <input type="hidden" name="tanggal_sampai" value="<?= htmlspecialchars($tanggal_sampai) ?>">
 
         <div style="margin-bottom:10px; display:flex; gap:8px; align-items:center; justify-content:space-between;">
-            <div>
+            <div style="display:flex; gap:8px; align-items:center;">
                 <input id="searchInput" type="search" placeholder="Cari PIN atau Nama..."
                     style="padding:8px 10px; border:1px solid #d1d5db; border-radius:6px; min-width:260px;">
-                <span style="margin-left:8px; color:#6b7280;">Jumlah: <strong
-                        id="userCount"><?= count($selected_users) ?></strong></span>
+                <span style="margin-left:8px; color:#6b7280;">Jumlah: <strong id="userCount"><?= count($selected_users) ?></strong></span>
             </div>
-            <!-- Save button removed (keterangan now read-only) -->
+
+            <div style="display:flex; gap:10px; align-items:center;">
+                <label style="color:#6b7280; font-weight:600;">Tampilkan:</label>
+                <select id="pageSizeSelect" style="padding:6px 8px; border-radius:6px; border:1px solid #d1d5db;">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="all">Semua</option>
+                </select>
+                <div id="pagination"></div>
+            </div>
         </div>
 
         <div class="table-container">
