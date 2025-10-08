@@ -12,14 +12,14 @@
 // ===============================================
 $machines = [
     [
-        'ip' => '192.168.110.2',        // Router Tenda
+        'ip' => '192.168.110.2',        // Router Tenda Produksi Produksi 2
         'port' => 8080,                 // Port forwarding existing
         'key' => 0,
         'name' => 'Fingerprint Produksi 2A',
         'active' => true
     ],
     [
-        'ip' => '192.168.110.2',        // Router Tenda yang sama  
+        'ip' => '192.168.110.4',        // Router Rujie Packing  
         'port' => 8082,                 // Port forwarding baru - PERLU DITAMBAH DI ROUTER
         'key' => 0,
         'name' => 'Fingerprint Produksi 2B',
