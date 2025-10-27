@@ -19,8 +19,8 @@ $machines = [
         'active' => true
     ],
     [
-        'ip' => '192.168.110.2',        // Router Rujie Packing  
-        'port' => 8083,                 // Port forwarding baru - PERLU DITAMBAH DI ROUTER
+        'ip' => '192.168.110.4',        // Router Rujie Packing  
+        'port' => 8082,                 // Port forwarding baru - PERLU DITAMBAH DI ROUTER
         'key' => 0,
         'name' => 'Fingerprint Produksi 2B',
         'active' => true

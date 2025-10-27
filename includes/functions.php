@@ -18,6 +18,19 @@ function getSoapResponse($ip, $port, $soap_request) {
     return $buffer;
 }
 
+// Normalize PIN to canonical string form (remove whitespace, keep numeric value)
+function normalize_pin($pin) {
+    if ($pin === null) return '';
+    // Remove non-digit characters and leading/trailing whitespace
+    $p = trim((string)$pin);
+    // If it's numeric-ish, normalize via intval to remove leading zeros
+    if (preg_match('/^\d+$/', $p)) {
+        return (string) intval($p);
+    }
+    // Fallback: return trimmed string
+    return $p;
+}
+
 /**
  * MODIFIED: Auto combined dari SEMUA mesin aktif
  * Function signature tetap sama untuk backward compatibility
@@ -49,12 +62,12 @@ function getUsers($ip = null, $port = null, $key = null) {
             foreach ($matches_user[1] as $row) {
                 preg_match('/<PIN2>(.*?)<\/PIN2>/', $row, $pin2);
                 preg_match('/<Name>(.*?)<\/Name>/', $row, $name);
-                $pin = $pin2[1] ?? '';
+                $pin = normalize_pin($pin2[1] ?? '');
                 $nama = $name[1] ?? '';
                 
                 if ($pin && $nama) {
                     // Jika user sudah ada dari mesin lain, skip (hindari duplikat)
-                    if (!isset($allUsers[$pin])) {
+                    if ($pin !== '' && !isset($allUsers[$pin])) {
                         $allUsers[$pin] = $nama;
                     }
                 }
@@ -119,8 +132,8 @@ function getAttendanceRange($ip = null, $port = null, $key = null, $tanggal_dari
 
                 // Check apakah tanggal dalam range
                 if ($timestamp_record >= $timestamp_dari && $timestamp_record <= $timestamp_sampai) {
-                    $pin_val = $pin[1] ?? '';
-                    $nama_val = $users[$pin_val] ?? '(Tidak Diketahui)';
+                    $pin_val = normalize_pin($pin[1] ?? '');
+                        $nama_val = $users[$pin_val] ?? '(Tidak Diketahui)';
                     $status_text = ($status[1] ?? '') == "0" ? "IN" : "OUT";
 
                     $allAttendance[] = [
@@ -226,10 +239,13 @@ function exportToCsv($data_absen, $filename = null, $pinOrder = null) {
         global $selected_users, $tanggal_dari, $tanggal_sampai, $nip_data, $absence_notes;
         
         // Calculate summary data per user (sama seperti di modal)
+        // Normalize selected users to match normalized PINs in attendance data
+        $norm_selected = array_map('normalize_pin', $selected_users);
+        $ordered_norm = array_values($norm_selected); // preserve original order
+
         $per_user_summary = [];
-        
-        // Initialize summary for each user
-        foreach ($selected_users as $pin) {
+        // Initialize summary for each normalized user
+        foreach ($ordered_norm as $pin) {
             $per_user_summary[$pin] = [
                 'present' => 0,
                 'no_absen' => 0, 
@@ -243,7 +259,7 @@ function exportToCsv($data_absen, $filename = null, $pinOrder = null) {
         $attendance_index = [];
         foreach ($data_absen as $rec) {
             $d = date('Y-m-d', strtotime($rec['datetime']));
-            $p = $rec['pin'];
+            $p = normalize_pin($rec['pin']);
             $attendance_index[$p][$d] = true;
         }
         
@@ -254,7 +270,7 @@ function exportToCsv($data_absen, $filename = null, $pinOrder = null) {
             (new DateTime($tanggal_sampai))->modify('+1 day')
         );
         
-        foreach ($selected_users as $pin) {
+        foreach ($ordered_norm as $pin) {
             foreach ($periode as $d) {
                 $ds = $d->format('Y-m-d');
                 $is_sunday = (date('N', strtotime($ds)) == 7);
@@ -418,7 +434,7 @@ function formatTanggalIndonesia($tanggal) {
     $tahun = date('Y', $timestamp);
     
     return $hari . ' ' . $bulan[$bulan_idx] . ' ' . $tahun;
-}
+} 
 
 /**
  * DEBUG FUNCTION - Test koneksi semua mesin (opsional)

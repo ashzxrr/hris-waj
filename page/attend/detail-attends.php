@@ -105,7 +105,11 @@ if (!isset($_POST['detailBtn']) || empty($_POST['selected_users']) || empty($_PO
     exit;
 }
 
-$selected_users = $_POST['selected_users'];
+$raw_selected = $_POST['selected_users'];
+// Normalize selected users to canonical PIN strings to match normalized attendance data
+$selected_users = array_map(function($p){ return trim((string)$p); }, $raw_selected);
+// Also prepare normalized versions (no leading zeros)
+$selected_users_normalized = array_map(function($p){ return preg_match('/^\d+$/', trim((string)$p)) ? (string)intval(trim((string)$p)) : trim((string)$p); }, $raw_selected);
 $tanggal_dari = $_POST['tanggal_dari'];
 $tanggal_sampai = $_POST['tanggal_sampai'];
 
@@ -113,9 +117,9 @@ $tanggal_sampai = $_POST['tanggal_sampai'];
 $users = getUsers($ip, $port, $key);
 $all_attendance = getAttendanceRange($ip, $port, $key, $tanggal_dari, $tanggal_sampai, $users);
 
-// Filter data absensi hanya untuk user yang dipilih
-$filtered_attendance = array_filter($all_attendance, function ($record) use ($selected_users) {
-    return in_array($record['pin'], $selected_users);
+// Filter data absensi hanya untuk user yang dipilih (use normalized pins)
+$filtered_attendance = array_filter($all_attendance, function ($record) use ($selected_users_normalized) {
+    return in_array($record['pin'], $selected_users_normalized);
 });
 
 // Ambil NIP & Bagian dari database
@@ -137,7 +141,12 @@ function getNamaHari($date)
     return $hari[date('l', strtotime($date))];
 }
 
-$nip_data = get_nip_data_from_db($mysqli, $pins);
+// Fetch raw nip_data then normalize its keys to canonical PIN form
+$nip_data_raw = get_nip_data_from_db($mysqli, $pins);
+$nip_data = [];
+foreach ($nip_data_raw as $k => $v) {
+    $nip_data[normalize_pin($k)] = $v;
+}
 
 // Tambahkan NIP & Bagian ke setiap record
 foreach ($filtered_attendance as &$record) {
@@ -183,7 +192,7 @@ if (!empty($pins)) {
 $attendance_index = [];
 foreach ($filtered_attendance as $rec) {
     $d = date('Y-m-d', strtotime($rec['datetime']));
-    $p = $rec['pin'];
+    $p = normalize_pin($rec['pin']);
     $attendance_index[$p][$d] = true;
 }
 
@@ -194,7 +203,7 @@ $total_present_days = 0; // total days with any IN/OUT (includes Sundays)
 
 // Per-user summary: total present days per pin, no-absen count and codes list
 $per_user = [];
-foreach ($selected_users as $pin) {
+foreach ($selected_users_normalized as $pin) {
     $per_user[$pin] = [
         'nip' => $nip_data[$pin]['nip'] ?? '-',
         'nama' => $nip_data[$pin]['nama'] ?? '-',
@@ -216,7 +225,7 @@ foreach ($selected_users as $pin) {
 
 // Aggregate per-user over the period
 $agg_period = new DatePeriod(new DateTime($tanggal_dari), new DateInterval('P1D'), (new DateTime($tanggal_sampai))->modify('+1 day'));
-foreach ($selected_users as $pin) {
+foreach ($selected_users_normalized as $pin) {
     foreach ($agg_period as $d) {
         $ds = $d->format('Y-m-d');
         $is_sunday = (date('N', strtotime($ds)) == 7);
@@ -1021,7 +1030,7 @@ if (isset($_POST['save_notes'])) {
                         (new DateTime($tanggal_sampai))->modify('+1 day')
                     );
 
-                    foreach ($selected_users as $pin) {
+                    foreach ($selected_users_normalized as $pin) {
                         foreach ($periode as $tgl) {
                             $tanggal_str = $tgl->format('Y-m-d');
                             $records_on_date = array_filter($filtered_attendance, function ($item) use ($pin, $tanggal_str) {
