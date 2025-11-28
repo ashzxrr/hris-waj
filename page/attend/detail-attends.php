@@ -173,6 +173,9 @@ unset($record);
 // Dapatkan statistik
 $stats = getAttendanceStats($filtered_attendance);
 
+// Hitung jumlah karyawan unik yang hadir berdasarkan record IN
+$unique_present_count = getUniquePresentCount($filtered_attendance);
+
 // Load existing absence notes for selected pins and date range
 $absence_notes = [];
 if (!empty($pins)) {
@@ -870,6 +873,7 @@ if (isset($_POST['save_notes'])) {
             s/d <?= formatTanggalIndonesia($tanggal_sampai) ?>
         <?php endif; ?>
         | 👥 <?= count($selected_users) ?> User Dipilih
+        | ✅ Hadir : <strong><?= $unique_present_count ?></strong>
     </div>
 
     <!-- Updated Action Buttons section -->

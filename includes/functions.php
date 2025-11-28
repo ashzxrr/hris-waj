@@ -459,4 +459,21 @@ function testAllMachinesConnection() {
     }
     echo "\n";
 }
+
+/**
+ * Hitung jumlah karyawan unik yang hadir berdasarkan record IN
+ * @param array $data_absen daftar record attendance (mengandung field 'pin' dan 'status')
+ * @return int jumlah karyawan unik yang punya setidaknya satu status 'IN'
+ */
+function getUniquePresentCount($data_absen) {
+    $unique = [];
+    foreach ($data_absen as $rec) {
+        $status = strtoupper($rec['status'] ?? '');
+        if ($status === 'IN') {
+            $p = normalize_pin($rec['pin'] ?? '');
+            if ($p !== '') $unique[$p] = true;
+        }
+    }
+    return count($unique);
+}
 ?>
