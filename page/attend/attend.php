@@ -564,6 +564,74 @@ $kategori_options = array_values($kategori_map);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             border: 1px solid rgba(0, 0, 0, 0.1);
         }
+
+        /* Dropdown styles for Kategori Gaji */
+        #kategoriGajiDropdown {
+            display: none !important;
+        }
+
+        #kategoriGajiDropdown.show {
+            display: block !important;
+        }
+
+        /* Style untuk button Recap dengan warna ungu */
+        .btn-recap {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-recap::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+        }
+
+        .btn-recap::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -30%;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+        }
+
+        .btn-recap:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.3);
+            background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+        }
+
+        .btn-recap:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-recap:hover .emoji {
+            transform: translateX(3px);
+        }
     </style>
     <script>
         let currentFilter = 'all';
@@ -721,13 +789,47 @@ $kategori_options = array_values($kategori_map);
                 currentKategoriGaji = currentKategoriGaji.filter(k => k !== kat);
             }
             searchAndFilter();
+            updateKategoriGajiDisplay();
         }
         
         function clearAllKategoriGaji() {
             currentKategoriGaji = [];
             document.querySelectorAll('.kategori-checkbox').forEach(cb => cb.checked = false);
             searchAndFilter();
+            updateKategoriGajiDisplay();
         }
+
+        function toggleKategoriGajiDropdown() {
+            const dropdown = document.getElementById('kategoriGajiDropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('show');
+            }
+        }
+
+        function updateKategoriGajiDisplay() {
+            const display = document.getElementById('kategoriGajiDisplay');
+            if (display) {
+                if (currentKategoriGaji.length === 0) {
+                    display.textContent = 'Pilih Kategori Gaji';
+                    display.style.color = '#6b7280';
+                } else {
+                    display.textContent = currentKategoriGaji.length + ' terpilih';
+                    display.style.color = '#1f2937';
+                }
+            }
+        }
+
+        // Close dropdown when clicking outside - must be defined after page load
+        document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('click', function(e) {
+                const kategoriDropdown = document.getElementById('kategoriGajiDropdown');
+                const filterDropdownBtn = e.target.closest('[onclick="toggleKategoriGajiDropdown()"]');
+                
+                if (kategoriDropdown && !kategoriDropdown.contains(e.target) && !filterDropdownBtn) {
+                    kategoriDropdown.classList.remove('show');
+                }
+            });
+        });
 
         function filterByTL(tl) {
             currentTL = tl;
@@ -920,9 +1022,9 @@ $kategori_options = array_values($kategori_map);
                             <div class="spinner"></div>
                             Detail Absensi <span class="emoji">➡️</span>
                         </button>
-                        <button type="submit" name="recapBtn" value="1" id="submitBtn" class="btn-primary">
+                        <button type="submit" name="recapBtn" value="1" id="submitBtn" class="btn-recap">
                             <div class="spinner"></div>
-                            Detail Rekap <span class="emoji">➡️</span>
+                            Detail Rekap <span class="emoji">📊</span>
                         </button>
                     </div>
                 </div>
@@ -1043,20 +1145,24 @@ $kategori_options = array_values($kategori_map);
                         </optgroup>
                     </select>
                 </div>
-                <div class="filter-dropdown" style="min-width: 250px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem;">💼 Kategori Gaji</label>
-                    <div style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; max-height: 200px; overflow-y: auto;">
+                <div class="filter-dropdown" style="position: relative;">
+                    <button type="button" onclick="toggleKategoriGajiDropdown()" style="width: 100%; padding: 10px 12px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; text-align: left; font-size: 0.9rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: #6b7280;">
+                        <span id="kategoriGajiDisplay">Pilih Kategori Gaji</span>
+                        <span style="font-size: 1.2rem;">▼</span>
+                    </button>
+                    
+                    <div id="kategoriGajiDropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; margin-top: 8px; padding: 10px; max-height: 300px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); display: none;" class="dropdown-menu">
                         <div style="margin-bottom: 8px;">
-                            <button type="button" class="filter-btn" onclick="clearAllKategoriGaji()" style="width: 100%; text-align: left; padding: 6px 10px; background: #f1f5f9; color: #475569; font-size: 0.85rem;">Bersihkan Pilihan</button>
+                            <button type="button" class="filter-btn" onclick="clearAllKategoriGaji()" style="width: 100%; text-align: left; padding: 8px 10px; background: #f1f5f9; color: #475569; font-size: 0.85rem; border: none; border-radius: 4px; cursor: pointer;">Bersihkan Pilihan</button>
                         </div>
                         <div style="border-top: 1px solid #e2e8f0; padding-top: 8px;">
                             <?php 
-                            $all_categories = array_unique(array_merge($kategori_options, ['Borongan Cabut', 'Borongan Cetak', 'Harian', 'Bulanan']));
+                            $all_categories = array_unique(array_merge( ['Borongan Cabut', 'Borongan Cetak', 'Harian', 'Bulanan']));
                             sort($all_categories);
                             foreach ($all_categories as $kat): 
                             ?>
                                 <div style="margin-bottom: 6px;">
-                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; padding: 4px;">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; padding: 4px 6px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
                                         <input type="checkbox" class="kategori-checkbox" value="<?= htmlspecialchars($kat) ?>" onchange="filterByKategoriGaji(this.value)">
                                         <span><?= htmlspecialchars($kat) ?></span>
                                     </label>
