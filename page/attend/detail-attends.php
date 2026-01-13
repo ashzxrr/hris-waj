@@ -876,7 +876,7 @@ if (isset($_POST['save_notes'])) {
         | ✅ Hadir : <strong><?= $unique_present_count ?></strong>
     </div>
 
-    <!-- Updated Action Buttons section -->
+
     <div style="margin-bottom: 15px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <a href="?page=attends" class="btn btn-secondary">⬅️ Kembali</a>
 

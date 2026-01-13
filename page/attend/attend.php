@@ -180,6 +180,9 @@ foreach ($extras as $e) {
 
 // Sort by key (case-insensitive order)
 ksort($kategori_map);
+
+// Create kategori_options array for use in template
+$kategori_options = array_values($kategori_map);
 ?>
 
 <!DOCTYPE html>
@@ -564,7 +567,7 @@ ksort($kategori_map);
     </style>
     <script>
         let currentFilter = 'all';
-    let currentKategoriGaji = 'all';
+    let currentKategoriGaji = []; // Changed to array for multiple selection
         document.addEventListener('DOMContentLoaded', function () {
             <?php if (isset($_SESSION['login_warning'])): ?>
                 Swal.fire({
@@ -668,7 +671,7 @@ ksort($kategori_map);
 
                 // Kategori gaji filter (uses data attribute set on the row)
                 const kategoriVal = row.dataset.kategoriGaji ? String(row.dataset.kategoriGaji).toLowerCase() : '';
-                const matchKategori = currentKategoriGaji === 'all' || kategoriVal === String(currentKategoriGaji).toLowerCase();
+                const matchKategori = currentKategoriGaji.length === 0 || currentKategoriGaji.some(k => kategoriVal === String(k).toLowerCase());
 
                 // Existing search logic: check all visible cells
                 const matchSearch = searchInput === '' || Array.from(row.cells).some(cell =>
@@ -709,7 +712,20 @@ ksort($kategori_map);
         }
 
         function filterByKategoriGaji(kat) {
-            currentKategoriGaji = kat;
+            const checkbox = event.target;
+            if (checkbox.checked) {
+                if (!currentKategoriGaji.includes(kat)) {
+                    currentKategoriGaji.push(kat);
+                }
+            } else {
+                currentKategoriGaji = currentKategoriGaji.filter(k => k !== kat);
+            }
+            searchAndFilter();
+        }
+        
+        function clearAllKategoriGaji() {
+            currentKategoriGaji = [];
+            document.querySelectorAll('.kategori-checkbox').forEach(cb => cb.checked = false);
             searchAndFilter();
         }
 
@@ -904,6 +920,10 @@ ksort($kategori_map);
                             <div class="spinner"></div>
                             Detail Absensi <span class="emoji">➡️</span>
                         </button>
+                        <button type="submit" name="recapBtn" value="1" id="submitBtn" class="btn-primary">
+                            <div class="spinner"></div>
+                            Detail Rekap <span class="emoji">➡️</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1023,18 +1043,27 @@ ksort($kategori_map);
                         </optgroup>
                     </select>
                 </div>
-                <div class="filter-dropdown">
-                    <select class="filter-select" id="kategoriGajiFilter" onchange="filterByKategoriGaji(this.value)">
-                        <option value="all">💼 Semua Kategori Gaji</option>
-                        <?php foreach ($kategori_options as $kat): ?>
-                            <option value="<?= htmlspecialchars($kat) ?>"><?= htmlspecialchars($kat) ?></option>
-                        <?php endforeach; ?>
-                        <!-- Additional common categories -->
-                        <option value="Borongan Cabut">Borongan Cabut</option>
-                        <option value="Borongan Cetak">Borongan Cetak</option>
-                        <option value="Harian">Harian</option>
-                        <option value="Bulanan">Bulanan</option>
-                    </select>
+                <div class="filter-dropdown" style="min-width: 250px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem;">💼 Kategori Gaji</label>
+                    <div style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; max-height: 200px; overflow-y: auto;">
+                        <div style="margin-bottom: 8px;">
+                            <button type="button" class="filter-btn" onclick="clearAllKategoriGaji()" style="width: 100%; text-align: left; padding: 6px 10px; background: #f1f5f9; color: #475569; font-size: 0.85rem;">Bersihkan Pilihan</button>
+                        </div>
+                        <div style="border-top: 1px solid #e2e8f0; padding-top: 8px;">
+                            <?php 
+                            $all_categories = array_unique(array_merge($kategori_options, ['Borongan Cabut', 'Borongan Cetak', 'Harian', 'Bulanan']));
+                            sort($all_categories);
+                            foreach ($all_categories as $kat): 
+                            ?>
+                                <div style="margin-bottom: 6px;">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; padding: 4px;">
+                                        <input type="checkbox" class="kategori-checkbox" value="<?= htmlspecialchars($kat) ?>" onchange="filterByKategoriGaji(this.value)">
+                                        <span><?= htmlspecialchars($kat) ?></span>
+                                    </label>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
                 </div>
                 <!-- Bulk Add S/I/A button (enabled only for DB users) -->
                 <div class="action-buttons">
@@ -1300,5 +1329,13 @@ ksort($kategori_map);
     // Initialize selected count on load
     document.addEventListener('DOMContentLoaded', function () {
         updateSelectedCount();
+    });
+
+    // Handle different submit buttons
+    document.querySelector('button[name="detailBtn"]').addEventListener('click', function() {
+        document.getElementById('absenForm').action = '?page=detail-attends';
+    });
+    document.querySelector('button[name="recapBtn"]').addEventListener('click', function() {
+        document.getElementById('absenForm').action = '?page=recap-attends';
     });
 </script>

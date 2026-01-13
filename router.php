@@ -13,6 +13,7 @@ $allowed_pages = [
     'payroll'  => __DIR__ . '/page/payroll/payroll.php',
     'attends'  => __DIR__ . '/page/attend/attend.php',
     'detail-attends'  => __DIR__ . '/page/attend/detail-attends.php',
+    'recap-attends'  => __DIR__ . '/page/attend/recap-attends.php',
     'users'    => __DIR__ . '/page/users/karyawan.php',
     'users-detail'    => __DIR__ . '/page/users/detail.php',
     'edit-karyawan'=> __DIR__ . '/page/users/edit-karyawan.php',
