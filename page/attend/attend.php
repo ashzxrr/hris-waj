@@ -406,6 +406,57 @@ $kategori_options = array_values($kategori_map);
             min-width: 180px;
         }
 
+        /* Style untuk dropdown button kategori gaji yang sama dengan filter-select */
+        .filter-dropdown-btn {
+            width: 100%;
+            padding: 10px 16px;
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+
+        .filter-dropdown-btn:hover {
+            background: #cbd5e1;
+            border-color: #94a3b8;
+        }
+
+        .filter-dropdown-btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(69, 202, 255, 0.3);
+        }
+
+        .filter-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            margin-top: 8px;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        .filter-dropdown-menu.show {
+            display: block;
+        }
+
         /* Tambahkan CSS berikut di dalam tag <style> */
         .action-buttons {
             display: flex;
@@ -565,14 +616,8 @@ $kategori_options = array_values($kategori_map);
             border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
-        /* Dropdown styles for Kategori Gaji */
-        #kategoriGajiDropdown {
-            display: none !important;
-        }
-
-        #kategoriGajiDropdown.show {
-            display: block !important;
-        }
+        /* Dropdown styles for Kategori Gaji - menggunakan class baru */
+        /* #kategoriGajiDropdown styles moved to .filter-dropdown-menu */
 
         /* Style untuk button Recap dengan warna ungu */
         .btn-recap {
@@ -1146,12 +1191,12 @@ $kategori_options = array_values($kategori_map);
                     </select>
                 </div>
                 <div class="filter-dropdown" style="position: relative;">
-                    <button type="button" onclick="toggleKategoriGajiDropdown()" style="width: 100%; padding: 10px 12px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; text-align: left; font-size: 0.9rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: #6b7280;">
+                    <button type="button" onclick="toggleKategoriGajiDropdown()" class="filter-dropdown-btn">
                         <span id="kategoriGajiDisplay">Pilih Kategori Gaji</span>
                         <span style="font-size: 1.2rem;">▼</span>
                     </button>
                     
-                    <div id="kategoriGajiDropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; margin-top: 8px; padding: 10px; max-height: 300px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); display: none;" class="dropdown-menu">
+                    <div id="kategoriGajiDropdown" class="filter-dropdown-menu">
                         <div style="margin-bottom: 8px;">
                             <button type="button" class="filter-btn" onclick="clearAllKategoriGaji()" style="width: 100%; text-align: left; padding: 8px 10px; background: #f1f5f9; color: #475569; font-size: 0.85rem; border: none; border-radius: 4px; cursor: pointer;">Bersihkan Pilihan</button>
                         </div>
