@@ -374,6 +374,53 @@ function get_nip_data_from_db($mysqli, $pins)
             border: 1px solid #e9ecef;
         }
 
+        .filter-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #e9ecef;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            padding: 10px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            width: 300px;
+            background: #f8f9fa;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+
+        .filter-select {
+            padding: 10px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #f8f9fa;
+            cursor: pointer;
+            min-width: 200px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+
         .summary-table {
             width: 100%;
             border-collapse: collapse;
@@ -450,6 +497,21 @@ function get_nip_data_from_db($mysqli, $pins)
                 justify-content: center;
             }
 
+            .filter-controls {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+
+            .search-input {
+                width: 100%;
+            }
+
+            .filter-select {
+                width: 100%;
+                min-width: unset;
+            }
+
             .summary-table {
                 font-size: 0.8rem;
             }
@@ -505,6 +567,21 @@ function get_nip_data_from_db($mysqli, $pins)
             </div>
         </div>
 
+        <div class="filter-section">
+            <div class="filter-controls">
+                <div>
+                    <input type="text" id="searchInput" class="search-input" placeholder="🔍 Cari karyawan (nama, NIP, NIK, PIN)...">
+                </div>
+                <div>
+                    <select id="statusFilter" class="filter-select" onchange="filterTable()">
+                        <option value="all">👥 Semua Karyawan</option>
+                        <option value="hadir">✅ Karyawan Hadir</option>
+                        <option value="tidak-hadir">❌ Karyawan Tidak Hadir</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
         <div class="table-container">
             <table class="summary-table">
                 <thead>
@@ -544,6 +621,73 @@ function get_nip_data_from_db($mysqli, $pins)
             </table>
         </div>
     </div>
+
+    <script>
+        // Simple search and filter functionality
+        function searchAndFilter() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const rows = document.querySelectorAll('.summary-table tbody tr');
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length < 12) return;
+
+                // Get data from cells
+                const pin = cells[0].textContent.toLowerCase();
+                const nama = cells[1].textContent.toLowerCase();
+                const nip = cells[2].textContent.toLowerCase();
+                const nik = cells[3].textContent.toLowerCase();
+                // Get jumlah hadir - handle the span element
+                let jumlahHadir = 0;
+                const hadirSpan = cells[11].querySelector('.hadir-column');
+                if (hadirSpan) {
+                    jumlahHadir = parseInt(hadirSpan.textContent.trim()) || 0;
+                } else {
+                    // Fallback: parse the cell content directly
+                    const cellText = cells[11].textContent.trim();
+                    const numberMatch = cellText.match(/\d+/);
+                    jumlahHadir = numberMatch ? parseInt(numberMatch[0]) : 0;
+                }
+
+                // Check search
+                const matchesSearch = !searchTerm ||
+                    pin.includes(searchTerm) ||
+                    nama.includes(searchTerm) ||
+                    nip.includes(searchTerm) ||
+                    nik.includes(searchTerm);
+
+                // Check filter
+                let matchesFilter = true;
+                if (statusFilter === 'hadir') {
+                    matchesFilter = jumlahHadir > 0;
+                } else if (statusFilter === 'tidak-hadir') {
+                    matchesFilter = jumlahHadir === 0;
+                }
+
+                // Show/hide row
+                row.style.display = (matchesSearch && matchesFilter) ? '' : 'none';
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            const statusFilter = document.getElementById('statusFilter');
+
+            if (searchInput) {
+                searchInput.addEventListener('input', searchAndFilter);
+                searchInput.addEventListener('keyup', searchAndFilter);
+            }
+
+            if (statusFilter) {
+                statusFilter.addEventListener('change', searchAndFilter);
+            }
+
+            // Initial run
+            searchAndFilter();
+        });
+    </script>
 
     <script>
         function exportToExcel() {
