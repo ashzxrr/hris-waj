@@ -187,7 +187,7 @@ $job_titles = [
     'Finance Accounting'
 ];
 $job_levels = ['Operator', 'Team Leader', 'Supervisor', 'Group Team Leader', 'Manager', 'Checker', 'Administrasi', 'Driver', 'Superintenden', 'General Manager', 'Security', 'Sanitasi', 'Maintenance', 'Finance Accounting'];
-$bagian_list = ['-', 'Manager Produksi', 'Bahan Baku', 'Cabut', 'Dry A', 'Moulding', 'Cuci Bersih', 'Cuci Kotor', 'Admin', 'Rambang', 'Cutter & Flek', 'Dry B & HCR', 'HCR Moulding', 'Admin Cabut & Bahan Baku', 'Packing', 'Admin Drying & Moulding', 'SPV', 'TL Pre Cleaning', 'Checker Moulding', 'Timbang Indomie', 'Administrasi', 'Grading', 'Final Grading', 'Titil HCR', 'Moulding Indomie', 'CCP 1', 'Prewash', 'Driver', 'Admin Packing', 'Admin Cabut', 'Security', 'Sanitasi', 'Kasir Perusahaan', 'Maintenance IT', 'Finance Accounting', 'Maintenance'];
+$bagian_list = ['Bulanan', 'Harian','Borongan', 'Cabut', 'Moulding', ];
 $departemen_list = ['Produksi', 'Support', 'Operation'];
 
 ?>
