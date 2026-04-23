@@ -896,6 +896,14 @@ foreach ($database_users as $row) {
                 <div class="filter-dropdown">
                     <select class="filter-select" id="bagianFilter" onchange="filterByBagian(this.value)">
                         <option value="all">🏢 Semua Bagian</option>
+                        <optgroup label="----">
+                            <option value="Bulanan">Bulanan</option>
+                            <option value="Harian">Harian</option>
+                            <option value="Borongan">Borongan</option>
+                            <option value="Cabut">Cabut</option>
+                            <option value="Moulding">Moulding</option>
+
+                        </optgroup>
                         <optgroup label="Produksi">
                             <option value="Bahan Baku">Bahan Baku</option>
                             <option value="Cabut">Cabut</option>
