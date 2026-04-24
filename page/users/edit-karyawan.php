@@ -34,8 +34,8 @@ if (isset($_POST['save_users'])) {
             }
             $bagian = $ud['bagian'] ?? '';
             $departemen = $ud['departemen'] ?? '';
-            // Use NULLIF on tl_id so empty string becomes SQL NULL (avoids incorrect integer value)
-            $update_sql = "UPDATE users SET nip=?, nik=?, nama=?, jk=NULLIF(?, ''), job_title=?, job_level=?, tl_id=NULLIF(?, ''), bagian=?, departemen=? WHERE id=?";
+            // Avoid setting `jk` to SQL NULL when the input is empty: keep existing value instead
+            $update_sql = "UPDATE users SET nip=?, nik=?, nama=?, jk=IFNULL(NULLIF(?, ''), jk), job_title=?, job_level=?, tl_id=NULLIF(?, ''), bagian=?, departemen=? WHERE id=?";
             $up_stmt = mysqli_prepare($mysqli, $update_sql);
             if (!$up_stmt) {
                 $errors[] = "Gagal prepare update untuk ID {$id}: " . mysqli_error($mysqli);
@@ -167,6 +167,7 @@ $job_titles = [
     'TL Moulding',
     'GTL Moulding',
     'GTL Cabut',
+    'GTL Packing',
     'Driver',
     'Manager Produksi',
     'SPV Kedatangan',
@@ -184,9 +185,12 @@ $job_titles = [
     'Sanitasi',
     'Purchasing/ Logistic',
     'Maintenance',
-    'Finance Accounting'
+    'Finance Accounting',
+    'General Affair',
+    'HRD',
+    'Payroll'
 ];
-$job_levels = ['Operator', 'Team Leader', 'Supervisor', 'Group Team Leader', 'Manager', 'Checker', 'Administrasi', 'Driver', 'Superintenden', 'General Manager', 'Security', 'Sanitasi', 'Maintenance', 'Finance Accounting'];
+$job_levels = ['Operator', 'Team Leader', 'Supervisor', 'Group Team Leader', 'Manager', 'Checker', 'Administrasi','General Affair','HRD','Payroll','Driver', 'Superintenden', 'General Manager', 'Security', 'Sanitasi', 'Maintenance', 'Finance Accounting'];
 $bagian_list = ['Bulanan', 'Harian','Borongan', 'Cabut', 'Moulding', ];
 $departemen_list = ['Produksi', 'Support', 'Operation'];
 
