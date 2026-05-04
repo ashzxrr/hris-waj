@@ -598,6 +598,8 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                                     <option value="118" <?= (string)($u['tl_id'] ?? '') === '118' ? 'selected' : '' ?>>Kerinna</option>
                                     <option value="63" <?= (string)($u['tl_id'] ?? '') === '63' ? 'selected' : '' ?>>Puput Indarwati</option>
                                     <option value="865" <?= (string)($u['tl_id'] ?? '') === '865' ? 'selected' : '' ?>>TL CCP 1</option>
+                                    <option value="849" <?= (string)($u['tl_id'] ?? '') === '849' ? 'selected' : '' ?>>Sanitasi</option>
+                                    <option value="850" <?= (string)($u['tl_id'] ?? '') === '450' ? 'selected' : '' ?>>Checker</option>
                                 </optgroup>
                             </select>
                         </div>

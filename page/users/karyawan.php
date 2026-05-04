@@ -1165,6 +1165,8 @@ foreach ($database_users as $row) {
                                 <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="118" onchange="onTLChange(this)"> Kerinna</label>
                                 <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="63" onchange="onTLChange(this)"> Puput Indarwati</label>
                                 <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="865" onchange="onTLChange(this)"> TL CCP 1</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="849" onchange="onTLChange(this)"> Sanitasi</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="450" onchange="onTLChange(this)"> Checker</label>
                             </div>
                         </div>
                     </div>
