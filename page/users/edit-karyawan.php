@@ -34,14 +34,48 @@ if (isset($_POST['save_users'])) {
             }
             $bagian = $ud['bagian'] ?? '';
             $departemen = $ud['departemen'] ?? '';
-            // Avoid setting `jk` to SQL NULL when the input is empty: keep existing value instead
-            $update_sql = "UPDATE users SET nip=?, nik=?, nama=?, jk=IFNULL(NULLIF(?, ''), jk), job_title=?, job_level=?, tl_id=NULLIF(?, ''), bagian=?, departemen=? WHERE id=?";
+
+            // Build UPDATE dynamically to avoid assigning NULL to NOT NULL columns (e.g. `jk`)
+            $set_parts = [];
+            $bind_values = [];
+            $bind_types = '';
+
+            // Always allow updating these fields
+            $set_parts[] = 'nip = ?'; $bind_values[] = $nip; $bind_types .= 's';
+            $set_parts[] = 'nik = ?'; $bind_values[] = $nik; $bind_types .= 's';
+            $set_parts[] = 'nama = ?'; $bind_values[] = $nama; $bind_types .= 's';
+
+            // Only update `jk` when a non-empty value is provided to avoid writing NULL
+            if ($jk !== '') {
+                $set_parts[] = 'jk = ?'; $bind_values[] = $jk; $bind_types .= 's';
+            }
+
+            $set_parts[] = 'job_title = ?'; $bind_values[] = $job_title; $bind_types .= 's';
+            $set_parts[] = 'job_level = ?'; $bind_values[] = $job_level; $bind_types .= 's';
+
+            // tl_id may be set to NULL intentionally via empty string; use NULLIF to allow that
+            $set_parts[] = "tl_id = NULLIF(?, '')"; $bind_values[] = $tl_id; $bind_types .= 's';
+
+            $set_parts[] = 'bagian = ?'; $bind_values[] = $bagian; $bind_types .= 's';
+            $set_parts[] = 'departemen = ?'; $bind_values[] = $departemen; $bind_types .= 's';
+
+            if (empty($set_parts)) {
+                $errors[] = "Tidak ada field untuk diperbarui untuk ID {$id}";
+                continue;
+            }
+
+            $update_sql = 'UPDATE users SET ' . implode(', ', $set_parts) . ' WHERE id = ?';
+            $bind_types .= 'i';
+            $bind_values[] = $id;
+
             $up_stmt = mysqli_prepare($mysqli, $update_sql);
             if (!$up_stmt) {
                 $errors[] = "Gagal prepare update untuk ID {$id}: " . mysqli_error($mysqli);
                 continue;
             }
-            mysqli_stmt_bind_param($up_stmt, 'sssssssssi', $nip, $nik, $nama, $jk, $job_title, $job_level, $tl_id, $bagian, $departemen, $id);
+
+            // Bind params dynamically
+            mysqli_stmt_bind_param($up_stmt, $bind_types, ...$bind_values);
             if (mysqli_stmt_execute($up_stmt)) {
                 $success++;
             } else {
@@ -541,7 +575,7 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                                     <option value="22" <?= (string)($u['tl_id'] ?? '') === '22' ? 'selected' : '' ?>>Muhammad Regatana Hidayatulloh</option>
                                     <option value="119" <?= (string)($u['tl_id'] ?? '') === '119' ? 'selected' : '' ?>>Zusita Arsdhia Indrayani</option>
                                     <option value="34" <?= (string)($u['tl_id'] ?? '') === '34' ? 'selected' : '' ?>>Wahyu Surodo</option>
-                                    <option value="60" <?= (string)($u['tl_id'] ?? '') === '60' ? 'selected' : '' ?>>Lutfi Dwi Firmansyah</option>
+                                    <option value="30" <?= (string)($u['tl_id'] ?? '') === '30' ? 'selected' : '' ?>>Deniko Fergian</option>
                                     <option value="109" <?= (string)($u['tl_id'] ?? '') === '109' ? 'selected' : '' ?>>Ruliatul Fidiah</option>
                                 </optgroup>
                                 <optgroup label="CETAK">
@@ -553,6 +587,9 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                                     <option value="48" <?= (string)($u['tl_id'] ?? '') === '48' ? 'selected' : '' ?>>M. Jamaludin</option>
                                     <option value="99" <?= (string)($u['tl_id'] ?? '') === '99' ? 'selected' : '' ?>>Nila Widya Sari</option>
                                     <option value="113" <?= (string)($u['tl_id'] ?? '') === '113' ? 'selected' : '' ?>>Nurul Izzuddin</option>
+                                    <option value="75" <?= (string)($u['tl_id'] ?? '') === '75' ? 'selected' : '' ?>>Niko Yudho</option>
+                                    <option value="71" <?= (string)($u['tl_id'] ?? '') === '71' ? 'selected' : '' ?>>Tsalis Akmaludin</option>
+                                    <option value="69" <?= (string)($u['tl_id'] ?? '') === '69' ? 'selected' : '' ?>>Prayogo Dwi Cahyo</option>
                                 </optgroup>
                                 <optgroup label="LAINNYA">
                                     <option value="1" <?= (string)($u['tl_id'] ?? '') === '1' ? 'selected' : '' ?>>Anik</option>
@@ -560,6 +597,7 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                                     <option value="40" <?= (string)($u['tl_id'] ?? '') === '40' ? 'selected' : '' ?>>Cankiswan</option>
                                     <option value="118" <?= (string)($u['tl_id'] ?? '') === '118' ? 'selected' : '' ?>>Kerinna</option>
                                     <option value="63" <?= (string)($u['tl_id'] ?? '') === '63' ? 'selected' : '' ?>>Puput Indarwati</option>
+                                    <option value="865" <?= (string)($u['tl_id'] ?? '') === '865' ? 'selected' : '' ?>>TL CCP 1</option>
                                 </optgroup>
                             </select>
                         </div>
