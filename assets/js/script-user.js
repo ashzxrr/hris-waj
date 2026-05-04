@@ -1,17 +1,59 @@
  let currentFilter = 'all';
 
+// Persistent selection set: stores selected PINs across searches
+const persistentSelected = new Set();
+
+function initPersistentSelection() {
+    // Initialize from any existing checkboxes or hidden inputs on page
+    document.querySelectorAll('input[name="selected_users[]"]').forEach(inp => {
+        const val = inp.value;
+        if (!val) return;
+        // If it's a hidden input (server-rendered), treat as selected
+        if (inp.type === 'hidden' || inp.checked) {
+            persistentSelected.add(val);
+        }
+    });
+
+    // Ensure visible checkboxes reflect the persistent set
+    document.querySelectorAll('input[name="selected_users[]"]').forEach(inp => {
+        if (inp.type !== 'hidden') {
+            inp.checked = persistentSelected.has(inp.value);
+        }
+    });
+    updateSelectedCount();
+}
+
+function syncSelectionsToForm(form) {
+    // Remove any existing selected_users[] hidden inputs in the form
+    form.querySelectorAll('input[name="selected_users[]"][type="hidden"]').forEach(i => i.remove());
+    // Append hidden inputs for each selected value
+    persistentSelected.forEach(val => {
+        const h = document.createElement('input');
+        h.type = 'hidden';
+        h.name = 'selected_users[]';
+        h.value = val;
+        form.appendChild(h);
+    });
+}
+
         function toggleAll(source) {
             const checkboxes = document.querySelectorAll('input[name="selected_users[]"]:not(.hidden):not(:disabled)');
-            checkboxes.forEach(checkbox => checkbox.checked = source.checked);
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = source.checked;
+                if (typeof persistentSelected !== 'undefined') {
+                    if (source.checked) persistentSelected.add(checkbox.value);
+                    else persistentSelected.delete(checkbox.value);
+                }
+            });
             updateSelectedCount();
         }
 
         function validateForm() {
-            const checkboxes = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)');
+            const selectedCount = (typeof persistentSelected !== 'undefined') ? persistentSelected.size : document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)').length;
             const tanggalDari = document.querySelector('input[name="tanggal_dari"]').value;
             const tanggalSampai = document.querySelector('input[name="tanggal_sampai"]').value;
 
-            if (checkboxes.length === 0) {
+            if (selectedCount === 0) {
                 alert('⚠️ Pilih minimal satu user!');
                 return false;
             }
@@ -40,12 +82,17 @@
         }
 
         function validateAddUsers() {
-            const machineOnlyCheckboxes = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)');
-            const selectedMachineOnly = Array.from(machineOnlyCheckboxes).filter(checkbox => {
-                return checkbox.closest('tr').classList.contains('machine-only');
+            // Determine selected machine-only pins from persistentSelected when available
+            const selectedPins = (typeof persistentSelected !== 'undefined') ? Array.from(persistentSelected) : Array.from(document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)')).map(cb => cb.value);
+            const selectedMachineOnlyPins = selectedPins.filter(pin => {
+                const row = Array.from(document.querySelectorAll('tbody tr')).find(r => {
+                    const c = r.querySelector('.pin-col');
+                    return c && c.textContent.trim() === String(pin).trim();
+                });
+                return row && row.classList.contains('machine-only');
             });
 
-            if (selectedMachineOnly.length === 0) {
+            if (selectedMachineOnlyPins.length === 0) {
                 alert('⚠️ Pilih minimal satu user yang hanya ada di mesin (baris hijau) untuk ditambahkan ke database!');
                 return false;
             }
@@ -58,10 +105,12 @@
             oldInputs.forEach(input => input.remove());
 
             // Tambahkan data user yang dipilih
-            selectedMachineOnly.forEach((checkbox, index) => {
-                const row = checkbox.closest('tr');
-                const pin = checkbox.value;
-                const namaMesin = row.cells[2].textContent.trim();
+            selectedMachineOnlyPins.forEach((pin, index) => {
+                const row = Array.from(document.querySelectorAll('tbody tr')).find(r => {
+                    const c = r.querySelector('.pin-col');
+                    return c && c.textContent.trim() === String(pin).trim();
+                });
+                const namaMesin = row ? row.cells[2].textContent.trim() : '';
 
                 // Buat hidden inputs untuk pin dan nama
                 const pinInput = document.createElement('input');
@@ -130,7 +179,11 @@
                     row.style.display = '';
                     row.classList.remove('hidden');
                     const checkbox = row.querySelector('input[type="checkbox"]');
-                    if (checkbox) checkbox.classList.remove('hidden');
+                    if (checkbox) {
+                        checkbox.classList.remove('hidden');
+                        // When row becomes visible, reflect persistent selection
+                        checkbox.checked = persistentSelected.has(checkbox.value);
+                    }
                     visibleCount++;
                 } else {
                     row.style.display = 'none';
@@ -138,13 +191,18 @@
                     const checkbox = row.querySelector('input[type="checkbox"]');
                     if (checkbox) {
                         checkbox.classList.add('hidden');
-                        checkbox.checked = false;
+                        // Keep checkbox.checked as-is; persistentSelected still tracks it
                     }
                 }
             });
 
             document.getElementById('userCount').textContent = visibleCount;
-            document.querySelector('input[onchange="toggleAll(this)"]').checked = false;
+            // Recompute master checkbox state based on visible checkboxes
+            const master = document.querySelector('input[onchange="toggleAll(this)"]');
+            if (master) {
+                const visibleBoxes = document.querySelectorAll('input[name="selected_users[]"]:not(.hidden):not(:disabled)');
+                master.checked = visibleBoxes.length > 0 && Array.from(visibleBoxes).every(b => b.checked);
+            }
             updateSelectedCount();
         }
 
@@ -159,7 +217,8 @@
         }
 
         function updateSelectedCount() {
-            const selectedCount = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden)').length;
+            // Use persistentSelected size as the authoritative count
+            const selectedCount = persistentSelected.size;
             const selectedCountElement = document.getElementById('selectedCount');
             if (selectedCountElement) {
                 selectedCountElement.textContent = selectedCount;
@@ -206,7 +265,22 @@
 
             // Add change event to all checkboxes
             document.querySelectorAll('input[name="selected_users[]"]').forEach(checkbox => {
-                checkbox.addEventListener('change', updateSelectedCount);
+                checkbox.addEventListener('change', function (e) {
+                    const v = e.target.value;
+                    if (e.target.checked) persistentSelected.add(v);
+                    else persistentSelected.delete(v);
+                    updateSelectedCount();
+                });
+            });
+
+            // Initialize persistent selection from any server-rendered hidden fields or initial checkboxes
+            initPersistentSelection();
+
+            // Ensure forms submit the persistent selections by injecting hidden inputs before submit
+            document.querySelectorAll('form').forEach(f => {
+                f.addEventListener('submit', function (ev) {
+                    syncSelectionsToForm(f);
+                });
             });
 
             // Set default dates
