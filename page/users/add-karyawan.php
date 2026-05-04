@@ -182,41 +182,11 @@ $job_levels = [
 
 $bagian_list = [
     '-',
-    'Manager Produksi',
-    'Bahan Baku',
+    'Bulanan',
+    'Harian',
+    'Borongan',
     'Cabut',
-    'Dry A',
-    'Moulding',
-    'Cuci Bersih',
-    'Cuci Kotor',
-    'Admin',
-    'Rambang',
-    'Cutter & Flek',
-    'Dry B & HCR',
-    'HCR Moulding',
-    'Admin Cabut & Bahan Baku',
-    'Packing',
-    'Admin Drying & Moulding',
-    'SPV',
-    'TL Pre Cleaning',
-    'Checker Moulding',
-    'Timbang Indomie',
-    'Administrasi',
-    'Grading',
-    'Final Grading',
-    'Titil HCR',
-    'Moulding Indomie',
-    'CCP 1',
-    'Prewash',
-    'Driver',
-    'Admin Packing',
-    'Admin Cabut',
-    'Security',
-    'Sanitasi',
-    'Kasir Perusahaan',
-    'Maintenance IT',
-    'Finance Accounting',
-    'Maintenance'
+    'Moulding'
 ];
 
 $departemen_list = ['Produksi', 'Support', 'Operation'];
@@ -670,7 +640,7 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label for="bagian">Bagian</label>
+                                        <label for="departemen">Departemen</label>
                                         <select name="users[<?= $index ?>][departemen]" id="departemen" class="form-control"
                                             required>
                                             <?php foreach ($departemen_list as $departemen): ?>
@@ -694,7 +664,7 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                                                 <option value="22" <?= $sel_tl === '22' ? 'selected' : '' ?>>Muhammad Regatana Hidayatulloh</option>
                                                 <option value="119" <?= $sel_tl === '119' ? 'selected' : '' ?>>Zusita Arsdhia Indrayani</option>
                                                 <option value="34" <?= $sel_tl === '34' ? 'selected' : '' ?>>Wahyu Surodo</option>
-                                                <option value="60" <?= $sel_tl === '60' ? 'selected' : '' ?>>Lutfi Dwi Firmansyah</option>
+                                                <option value="30" <?= $sel_tl === '30' ? 'selected' : '' ?>>Deniko Fergian</option>
                                                 <option value="109" <?= $sel_tl === '109' ? 'selected' : '' ?>>Ruliatul Fidiah</option>
                                             </optgroup>
 
@@ -707,6 +677,9 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                                                 <option value="48" <?= $sel_tl === '48' ? 'selected' : '' ?>>M.Jamaludin</option>
                                                 <option value="99" <?= $sel_tl === '99' ? 'selected' : '' ?>>Nila Widya Sari</option>
                                                 <option value="113" <?= $sel_tl === '113' ? 'selected' : '' ?>>Nurul Izzuddin</option>
+                                                <option value="75" <?= $sel_tl === '75' ? 'selected' : '' ?>>Niko Yudho</option>
+                                                <option value="71" <?= $sel_tl === '71' ? 'selected' : '' ?>>Tsalis Akmaludin</option>
+                                                <option value="69" <?= $sel_tl === '69' ? 'selected' : '' ?>>Prayoga Dwi Cahyo</option>
                                             </optgroup>
 
                                             <optgroup label="Dan Lain lain">
@@ -714,6 +687,8 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                                                 <option value="98" <?= $sel_tl === '98' ? 'selected' : '' ?>>M Gaung Sidiq</option>
                                                 <option value="40" <?= $sel_tl === '40' ? 'selected' : '' ?>>Cankiswan</option>
                                                 <option value="118" <?= $sel_tl === '118' ? 'selected' : '' ?>>Kerinna</option>
+                                                <option value="118" <?= $sel_tl === '118' ? 'selected' : '' ?>>Kerinna</option>
+                                                <option value="865" <?= $sel_tl === '865' ? 'selected' : '' ?>>TL CCP 1</option>
                                             </optgroup>
                                         </select>
                                     </div>
