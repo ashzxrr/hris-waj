@@ -453,9 +453,19 @@ $kategori_options = array_values($kategori_map);
             display: none;
         }
 
+        /* TL dropdown refinements */
+        .filter-dropdown-menu.show { display: block; }
+        .filter-dropdown-menu label { display: flex; align-items: center; gap: 8px; padding: 4px 6px; cursor: pointer; border-radius: 4px; }
+        .filter-dropdown-menu label:hover { background: #f8fafc; }
+        .tl-checkbox { width: 16px; height: 16px; }
+
         .filter-dropdown-menu.show {
             display: block;
         }
+        /* Target compact layout for TL filter only */
+        .filter-dropdown.tl-filter .filter-dropdown-btn { width: auto; min-width: 220px; max-width: 360px; }
+        .filter-dropdown.tl-filter .filter-dropdown-menu { width: 340px; left: 0; right: auto; }
+        .filter-dropdown.tl-filter .filter-dropdown-btn.open span:last-child { transform: rotate(180deg); }
 
         /* Tambahkan CSS berikut di dalam tag <style> */
         .action-buttons {
@@ -761,7 +771,7 @@ $kategori_options = array_values($kategori_map);
 
     // Tambahkan variabel global
     let currentBagian = 'all';
-    let currentTL = 'all';
+    let currentTLs = []; // array of selected TL ids (strings) in selection order
     // resolved header index for 'Bagian' column (computed on DOM ready)
     let bagianIndex = null;
 
@@ -780,7 +790,7 @@ $kategori_options = array_values($kategori_map);
 
                 // Use data attribute for tl id matching (more reliable than comparing names)
                 const tlId = row.dataset.tlId ? String(row.dataset.tlId) : '';
-                const matchTL = currentTL === 'all' || tlId === String(currentTL);
+                const matchTL = currentTLs.length === 0 || currentTLs.includes(tlId);
 
                 // Kategori gaji filter (uses data attribute set on the row)
                 const kategoriVal = row.dataset.kategoriGaji ? String(row.dataset.kategoriGaji).toLowerCase() : '';
@@ -816,6 +826,27 @@ $kategori_options = array_values($kategori_map);
             const selAll = document.querySelector('input[onchange="toggleAll(this)"]');
             if (selAll) selAll.checked = false;
             updateSelectedCount();
+
+            // Reorder visible rows to follow TL selection order when TLs are selected
+            try {
+                if (currentTLs.length > 0) {
+                    const tbody = document.querySelector('tbody');
+                    if (tbody) {
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+                        const frag = document.createDocumentFragment();
+                        currentTLs.forEach(tl => {
+                            rows.forEach(r => {
+                                if (r.style.display !== 'none' && String(r.dataset.tlId) === String(tl)) {
+                                    frag.appendChild(r);
+                                }
+                            });
+                        });
+                        tbody.appendChild(frag);
+                    }
+                }
+            } catch (e) {
+                // ignore
+            }
         }
 
         // Tambahkan fungsi filterByBagian
@@ -868,17 +899,68 @@ $kategori_options = array_values($kategori_map);
         document.addEventListener('DOMContentLoaded', function() {
             document.addEventListener('click', function(e) {
                 const kategoriDropdown = document.getElementById('kategoriGajiDropdown');
-                const filterDropdownBtn = e.target.closest('[onclick="toggleKategoriGajiDropdown()"]');
-                
-                if (kategoriDropdown && !kategoriDropdown.contains(e.target) && !filterDropdownBtn) {
+                const kategoriBtn = e.target.closest('[onclick="toggleKategoriGajiDropdown()"]');
+
+                if (kategoriDropdown && !kategoriDropdown.contains(e.target) && !kategoriBtn) {
                     kategoriDropdown.classList.remove('show');
+                }
+
+                // TL dropdown close
+                const tlDropdown = document.getElementById('tlDropdownMenu');
+                const tlBtn = e.target.closest('[onclick="toggleTLDropdown()"]');
+                if (tlDropdown && !tlDropdown.contains(e.target) && !tlBtn) {
+                    tlDropdown.classList.remove('show');
                 }
             });
         });
 
         function filterByTL(tl) {
-            currentTL = tl;
+                if (tl === 'all' || tl === null || tl === undefined) {
+                    currentTLs = [];
+                } else {
+                    currentTLs = [String(tl)];
+                    document.querySelectorAll('.tl-checkbox').forEach(cb => cb.checked = (String(cb.value) === String(tl)));
+                }
+                updateTLDisplay();
+                searchAndFilter();
+        }
+        
+        // TL checkbox handlers and UI
+        function onTLChange(cb) {
+            const v = String(cb.value);
+            if (cb.checked) {
+                if (!currentTLs.includes(v)) currentTLs.push(v);
+            } else {
+                currentTLs = currentTLs.filter(x => x !== v);
+            }
+            updateTLDisplay();
             searchAndFilter();
+        }
+
+        function clearTLSelection() {
+            currentTLs = [];
+            document.querySelectorAll('.tl-checkbox').forEach(cb => cb.checked = false);
+            updateTLDisplay();
+            searchAndFilter();
+        }
+
+        function toggleTLDropdown() {
+            const el = document.getElementById('tlDropdownMenu');
+            const btn = document.querySelector('[onclick="toggleTLDropdown()"]');
+            if (el) el.classList.toggle('show');
+            if (btn) btn.classList.toggle('open');
+        }
+
+        function updateTLDisplay() {
+            const disp = document.getElementById('tlFilterDisplay');
+            if (!disp) return;
+            if (currentTLs.length === 0) {
+                disp.textContent = '👥 Semua TL';
+                disp.style.color = '#6b7280';
+            } else {
+                disp.textContent = currentTLs.length + ' TL terpilih';
+                disp.style.color = '#111';
+            }
         }
         function setFilter(filter) {
             currentFilter = filter;
@@ -1161,41 +1243,56 @@ $kategori_options = array_values($kategori_map);
                         </optgroup>
                     </select>
                 </div>
-                <div class="filter-dropdown">
-                    <select class="filter-select" id="tlFilter" onchange="filterByTL(this.value)">
-                        <option value="all">👥 Semua TL</option>
+                <div class="filter-dropdown tl-filter" style="position: relative;">
+                    <button type="button" onclick="toggleTLDropdown()" class="filter-dropdown-btn">
+                        <span id="tlFilterDisplay">👥 Semua TL</span>
+                        <span style="font-size: 1.2rem;">▼</span>
+                    </button>
 
-                        <optgroup label="CABUT">
-                            <option value="8">Karyawati</option>
-                            <option value="3">Sri Utami</option>
-                            <option value="2">ST Nur Farokah</option>
-                            <option value="25">Fhilis Sulestari</option>
-                            <option value="22">Muhammad Regatana Hidayatulloh</option>
-                            <option value="119">Zusita Arsdhia Indrayani</option>
-                            <option value="34">Wahyu Surodo</option>
-                            <option value="60">Lutfi Dwi Firmansyah</option>
-                            <option value="109">Ruliatul Fidiah</option>
-                        </optgroup>
+                    <div id="tlDropdownMenu" class="filter-dropdown-menu">
+                        <div style="margin-bottom:8px;">
+                            <button type="button" class="filter-btn" onclick="clearTLSelection()" style="width:100%; text-align:left; padding:8px 10px; background:#f1f5f9; color:#475569; font-size:0.85rem; border:none; border-radius:4px; cursor:pointer;">Bersihkan Pilihan</button>
+                        </div>
+                        <div style="border-top:1px solid #e2e8f0; padding-top:8px;">
+                            <div style="margin-bottom:6px;">
+                                <div style="font-weight:600; margin-bottom:6px;">CABUT</div>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="8" onchange="onTLChange(this)"> Karyawati</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="3" onchange="onTLChange(this)"> Sri Utami</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="2" onchange="onTLChange(this)"> ST Nur Farokah</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="25" onchange="onTLChange(this)"> Fhilis Sulestari</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="22" onchange="onTLChange(this)"> Muhammad Regatana Hidayatulloh</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="119" onchange="onTLChange(this)"> Zusita Arsdhia Indrayani</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="34" onchange="onTLChange(this)"> Wahyu Surodo</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="30" onchange="onTLChange(this)"> Deniko Fergian</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="109" onchange="onTLChange(this)"> Ruliatul Fidiah</label>
+                            </div>
 
-                        <optgroup label="Cetak">
-                            <option value="57">Muhammad Tamamur Ridlwan</option>
-                            <option value="53">Abdul Rouf Khoiri</option>
-                            <option value="7">Anita</option>
-                            <option value="24">Patur Albertino</option>
-                            <option value="27">Anas Ja'far</option>
-                            <option value="48">M.Jamaludin</option>
-                            <option value="99">Nila Widya Sari</option>
-                            <option value="113">Nurul Izzuddin</option>
-                        </optgroup>
+                            <div style="margin-bottom:6px;">
+                                <div style="font-weight:600; margin-bottom:6px;">Cetak</div>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="57" onchange="onTLChange(this)"> Muhammad Tamamur Ridlwan</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="53" onchange="onTLChange(this)"> Abdul Rouf Khoiri</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="7" onchange="onTLChange(this)"> Anita</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="24" onchange="onTLChange(this)"> Patur Albertino</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="27" onchange="onTLChange(this)"> Anas Ja'far</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="48" onchange="onTLChange(this)"> M.Jamaludin</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="99" onchange="onTLChange(this)"> Nila Widya Sari</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="113" onchange="onTLChange(this)"> Nurul Izzuddin</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="75" onchange="onTLChange(this)"> Niko Yudho</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="71" onchange="onTLChange(this)"> Tsalis Akmaludin</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="69" onchange="onTLChange(this)"> Prayogo Dwi</label>
+                            </div>
 
-                        <optgroup label="Dan Lain lain">
-                            <option value="1">Anik</option>
-                            <option value="98">M Gaung Sidiq</option>
-                            <option value="40">Cankiswan</option>
-                            <option value="118">Kerinna</option>
-                            <option value="63">Puput Indarwati</option>
-                        </optgroup>
-                    </select>
+                            <div style="margin-bottom:6px;">
+                                <div style="font-weight:600; margin-bottom:6px;">Dan Lain lain</div>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="1" onchange="onTLChange(this)"> Anik</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="98" onchange="onTLChange(this)"> M Gaung Sidiq</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="40" onchange="onTLChange(this)"> Cankiswan</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="118" onchange="onTLChange(this)"> Kerinna</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="63" onchange="onTLChange(this)"> Puput Indarwati</label>
+                                <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" class="tl-checkbox" value="865" onchange="onTLChange(this)"> TL CCP 1</label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="filter-dropdown" style="position: relative;">
                     <button type="button" onclick="toggleKategoriGajiDropdown()" class="filter-dropdown-btn">
