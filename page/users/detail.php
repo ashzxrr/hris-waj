@@ -244,7 +244,7 @@ if (isset($_POST['save_notes'])) {
     $create_sql = "CREATE TABLE IF NOT EXISTS absence_notes (
         pin VARCHAR(32) NOT NULL,
         date DATE NOT NULL,
-        code VARCHAR(4) DEFAULT NULL,
+        code VARCHAR(10) DEFAULT NULL,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY(pin,date)
     ) DEFAULT CHARSET=utf8mb4 ENGINE=InnoDB";

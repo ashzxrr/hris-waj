@@ -233,7 +233,7 @@ foreach ($filtered_attendance as $rec) {
 }
 
 // Initialize counters
-$counts_codes = ['S' => 0, 'A' => 0, 'I' => 0];
+$counts_codes = ['S' => 0, 'A' => 0, 'I' => 0, 'SSD' => 0, 'Cuti' => 0, 'GL' => 0];
 $total_no_absen = 0; // total days without attendance (excluding Sundays)
 $total_present_days = 0; // total days with any IN/OUT (includes Sundays)
 
@@ -255,6 +255,9 @@ foreach ($selected_users_normalized as $pin) {
         'A' => 0,
         'S' => 0,
         'I' => 0,
+        'SSD' => 0,
+        'Cuti' => 0,
+        'GL' => 0,
         'notes' => []
     ];
 }
@@ -278,7 +281,9 @@ foreach ($selected_users_normalized as $pin) {
                 $code = $absence_notes[$pin][$ds] ?? '';
                 if ($code && isset($per_user[$pin][$code])) {
                     $per_user[$pin][$code]++;
-                    $counts_codes[$code]++;
+                    if (isset($counts_codes[$code])) {
+                        $counts_codes[$code]++;
+                    }
                 }
                 $per_user[$pin]['notes'][] = ['date' => $ds, 'code' => $code];
             }
@@ -297,7 +302,7 @@ if (isset($_POST['save_notes'])) {
     $create_sql = "CREATE TABLE IF NOT EXISTS absence_notes (
         pin VARCHAR(32) NOT NULL,
         date DATE NOT NULL,
-        code VARCHAR(4) DEFAULT NULL,
+        code VARCHAR(10) DEFAULT NULL,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY(pin,date)
     ) DEFAULT CHARSET=utf8mb4 ENGINE=InnoDB";
@@ -725,6 +730,9 @@ if (isset($_POST['save_notes'])) {
             document.getElementById('modalCountA').textContent = user.A;
             document.getElementById('modalCountS').textContent = user.S;
             document.getElementById('modalCountI').textContent = user.I;
+            document.getElementById('modalCountSSD').textContent = user.SSD;
+            document.getElementById('modalCountCuti').textContent = user.Cuti;
+            document.getElementById('modalCountGL').textContent = user.GL;
 
             // Update notes
             const notesList = document.getElementById('modalNotes');
@@ -995,6 +1003,18 @@ if (isset($_POST['save_notes'])) {
                             <div class="number" id="modalCountI" style="color: #6f42c1;">0</div>
                             <div class="label">Ijin (I)</div>
                         </div>
+                        <div class="summary-card">
+                            <div class="number" id="modalCountSSD" style="color: #f59e0b;">0</div>
+                            <div class="label">SSD (Sakit Surat Dokter)</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="number" id="modalCountCuti" style="color: #0ea5e9;">0</div>
+                            <div class="label">Cuti</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="number" id="modalCountGL" style="color: #10b981;">0</div>
+                            <div class="label">GL (Ganti Libur)</div>
+                        </div>
                     </div>
                 </div>
 
@@ -1152,7 +1172,10 @@ if (isset($_POST['save_notes'])) {
                                     $code_labels = [
                                         'S' => 'S (Sakit)',
                                         'A' => 'A (Alpha)',
-                                        'I' => 'I (Izin)'
+                                        'I' => 'I (Izin)',
+                                        'SSD' => 'SSD (Sakit Surat Dokter)',
+                                        'Cuti' => 'Cuti',
+                                        'GL' => 'GL (Ganti Libur)'
                                     ];
 
                                     $display_label = '-';
