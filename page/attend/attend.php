@@ -1531,8 +1531,12 @@ $kategori_options = array_values($kategori_map);
                     <form id="bulkNoteForm" method="POST" action="?page=attends">
                         <input type="hidden" name="save_notes" value="1">
                         <div style="margin-bottom:10px;">
-                            <label style="display:block; font-weight:600; margin-bottom:6px;">Tanggal</label>
-                            <input type="date" id="bulkNoteDate" class="form-control" value="` + new Date().toISOString().slice(0,10) + `" required>
+                            <label>Tanggal Dari</label>
+                            <input type="date" id="bulkNoteDateFrom" class="form-control" value="` + new Date().toISOString().slice(0,10) + `" required>
+                        </div>
+                        <div style="margin-bottom:10px;">
+                            <label>Tanggal Sampai</label>
+                            <input type="date" id="bulkNoteDateTo" class="form-control" value="` + new Date().toISOString().slice(0,10) + `" required>
                         </div>
                         <div style="margin-bottom:10px;">
                             <label style="display:block; font-weight:600; margin-bottom:6px;">Kode</label>
@@ -1561,6 +1565,12 @@ $kategori_options = array_values($kategori_map);
         const pinsContainer = modal.querySelector('#bulkNotePins');
         pinsContainer.innerHTML = `<strong>Menambah keterangan untuk ${pins.length} user:</strong><br>` + pins.map(p => `<code style="display:inline-block;margin:4px;padding:4px 8px;background:#f4f4f4;border-radius:6px">${p}</code>`).join(' ');
 
+        const today = new Date().toISOString().slice(0,10);
+        const dateFromEl = modal.querySelector('#bulkNoteDateFrom');
+        const dateToEl = modal.querySelector('#bulkNoteDateTo');
+        if (dateFromEl) dateFromEl.value = today;
+        if (dateToEl) dateToEl.value = today;
+
         modal.style.display = 'flex';
         modal.dataset.pins = JSON.stringify(pins);
     }
@@ -1574,9 +1584,10 @@ $kategori_options = array_values($kategori_map);
         const modal = document.getElementById('bulkNoteModal');
         if (!modal) return;
         const pins = JSON.parse(modal.dataset.pins || '[]');
-        const dateInput = document.getElementById('bulkNoteDate');
+        const dateFrom = new Date(document.getElementById('bulkNoteDateFrom').value);
+        const dateTo = new Date(document.getElementById('bulkNoteDateTo').value);
         const codeSelect = document.getElementById('bulkNoteCode');
-        if (!dateInput.value || !codeSelect.value) return alert('Lengkapi tanggal dan kode.');
+        if (!dateFrom || !dateTo || dateFrom > dateTo) return alert('Rentang tanggal tidak valid.');
 
         // Build form and submit absence_notes[PIN][DATE]=CODE for each pin
         const form = document.createElement('form');
@@ -1589,13 +1600,16 @@ $kategori_options = array_values($kategori_map);
         saveInput.value = '1';
         form.appendChild(saveInput);
 
-        pins.forEach(pin => {
-            const hidden = document.createElement('input');
-            hidden.type = 'hidden';
-            hidden.name = `absence_notes[${pin}][${dateInput.value}]`;
-            hidden.value = codeSelect.value;
-            form.appendChild(hidden);
-        });
+        for (let d = new Date(dateFrom); d <= dateTo; d.setDate(d.getDate() + 1)) {
+            const dateStr = d.toISOString().slice(0, 10);
+            pins.forEach(pin => {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = `absence_notes[${pin}][${dateStr}]`;
+                hidden.value = codeSelect.value;
+                form.appendChild(hidden);
+            });
+        }
 
         document.body.appendChild(form);
         form.submit();
