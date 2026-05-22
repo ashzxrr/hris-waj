@@ -219,19 +219,20 @@ function exportToCsv($data_absen, $filename = null, $pinOrder = null) {
         // Add BOM untuk proper UTF-8 encoding di Excel
         fwrite($output, "\xEF\xBB\xBF");
         
-        // Header CSV sesuai dengan tabel
+        // Header CSV sesuai dengan tabel (letakkan TL setelah Keterangan)
         fputcsv($output, [
             'No',
-            'NIP', 
+            'NIP',
             'Nama',
             'L/P',
             'Jabatan',
             'Kategori Gaji',
             'Tanggal',
             'In',
-            'Out', 
+            'Out',
             'Overtime',
             'Keterangan',
+            'TL',
             'Ringkasan'
         ]);
 
@@ -304,6 +305,7 @@ function exportToCsv($data_absen, $filename = null, $pinOrder = null) {
                 // Get user info
                 $nip = $nip_data[$pin]['nip'] ?? '-';
                 $nama = $nip_data[$pin]['nama'] ?? '-';
+                $tl_name = $nip_data[$pin]['tl_name'] ?? '-';
                 $jk = $nip_data[$pin]['jk'] ?? '-';
                 $job_title = $nip_data[$pin]['job_title'] ?? '-';
                 $job_level = $nip_data[$pin]['job_level'] ?? '-';
@@ -389,7 +391,7 @@ function exportToCsv($data_absen, $filename = null, $pinOrder = null) {
                 fputcsv($output, [
                     $rowNo++,
                     $nip,
-                    $nama, 
+                    $nama,
                     $jk,
                     $jabatan,
                     $kategori_gaji,
@@ -398,6 +400,7 @@ function exportToCsv($data_absen, $filename = null, $pinOrder = null) {
                     $out_display,
                     $overtime_display,
                     $keterangan,
+                    $tl_name,
                     $ringkasan
                 ]);
             }

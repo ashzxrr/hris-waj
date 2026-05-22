@@ -689,8 +689,8 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                                                 <option value="118" <?= $sel_tl === '118' ? 'selected' : '' ?>>Kerinna</option>
                                                 <option value="118" <?= $sel_tl === '118' ? 'selected' : '' ?>>Kerinna</option>
                                                 <option value="865" <?= $sel_tl === '865' ? 'selected' : '' ?>>TL CCP 1</option>
-                                                <option value="865" <?= $sel_tl === '849' ? 'selected' : '' ?>>Sanitasi</option>
-                                                <option value="865" <?= $sel_tl === '850' ? 'selected' : '' ?>>Checker</option>
+                                                <option value="871" <?= $sel_tl === '871' ? 'selected' : '' ?>>Sanitasi</option>
+                                                <option value="872" <?= $sel_tl === '872' ? 'selected' : '' ?>>Checker</option>
                                             </optgroup>
                                         </select>
                                     </div>

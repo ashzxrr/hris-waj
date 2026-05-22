@@ -77,8 +77,9 @@ function get_nip_data_from_db($mysqli, $pins)
     }
 
     $pin_list = implode(',', array_map('intval', $pins));
-    $sql = "SELECT pin, nip, nama, bagian, nik, jk, job_title, job_level, bagian, departemen, kategori_gaji FROM users WHERE pin IN ($pin_list)";
+    $sql = "SELECT pin, nip, nama, bagian, nik, jk, job_title, job_level, bagian, departemen, kategori_gaji, tl_id FROM users WHERE pin IN ($pin_list)";
     $res = mysqli_query($mysqli, $sql);
+    $tl_ids = [];
     if ($res) {
         while ($row = mysqli_fetch_assoc($res)) {
             $nip_data[$row['pin']] = [
@@ -89,11 +90,37 @@ function get_nip_data_from_db($mysqli, $pins)
                 'job_title' => $row['job_title'],
                 'job_level' => $row['job_level'],
                 'bagian' => $row['bagian'],
-                'departemen' => $row['departemen']
-                ,
-                'kategori_gaji' => $row['kategori_gaji'] ?? ''
+                'departemen' => $row['departemen'],
+                'kategori_gaji' => $row['kategori_gaji'] ?? '',
+                'tl_id' => $row['tl_id'] ?? null,
+                'tl_name' => null
             ];
+
+            if (!empty($row['tl_id'])) $tl_ids[] = (int)$row['tl_id'];
         }
+    }
+
+    // Resolve TL names in a single query
+    $tl_ids = array_unique($tl_ids);
+    if (!empty($tl_ids)) {
+        $tl_list = implode(',', $tl_ids);
+        $q = "SELECT id, nama FROM users WHERE id IN ($tl_list)";
+        $res2 = mysqli_query($mysqli, $q);
+        $tl_map = [];
+        if ($res2) {
+            while ($r = mysqli_fetch_assoc($res2)) {
+                $tl_map[(int)$r['id']] = $r['nama'];
+            }
+        }
+
+        foreach ($nip_data as $p => &$info) {
+            if (!empty($info['tl_id']) && isset($tl_map[(int)$info['tl_id']])) {
+                $info['tl_name'] = $tl_map[(int)$info['tl_id']];
+            } else {
+                $info['tl_name'] = '-';
+            }
+        }
+        unset($info);
     }
 
     return $nip_data;
@@ -148,6 +175,8 @@ foreach ($nip_data_raw as $k => $v) {
     $nip_data[normalize_pin($k)] = $v;
 }
 
+
+
 // Tambahkan NIP & Bagian ke setiap record
 foreach ($filtered_attendance as &$record) {
     if (isset($nip_data[$record['pin']])) {
@@ -158,6 +187,8 @@ foreach ($filtered_attendance as &$record) {
         $record['job_level'] = $nip_data[$record['pin']]['job_level'];
         $record['bagian'] = $nip_data[$record['pin']]['bagian'];
         $record['departemen'] = $nip_data[$record['pin']]['departemen'];
+        $record['tl_id'] = $nip_data[$record['pin']]['tl_id'] ?? null;
+        $record['tl_name'] = $nip_data[$record['pin']]['tl_name'] ?? '-';
     } else {
         $record['nip'] = '-';
         $record['nik'] = '-';
@@ -166,6 +197,8 @@ foreach ($filtered_attendance as &$record) {
         $record['job_level'] = '-';
         $record['bagian'] = '-';
         $record['departemen'] = '-';
+        $record['tl_id'] = null;
+        $record['tl_name'] = '-';
     }
 }
 unset($record);
@@ -1023,6 +1056,7 @@ if (isset($_POST['save_notes'])) {
                         <th>Out</th>
                         <th>Overtime</th>
                         <th>Keterangan</th>
+                        <th>TL</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1080,6 +1114,7 @@ if (isset($_POST['save_notes'])) {
                                 $job_title = $sample['job_title'] ?? ($nip_data[$pin]['job_title'] ?? '-');
                                 $job_level = $sample['job_level'] ?? ($nip_data[$pin]['job_level'] ?? '-');
                                 $jabatan = trim($job_title . ' ' . ($job_level && $job_level !== '-' ? '(' . $job_level . ')' : ''));
+                                $tl_name = $sample['tl_name'] ?? ($nip_data[$pin]['tl_name'] ?? '-');
 
                                 // Prepare overtime cell with styling
                                 $overtime_cell = $overtime_display !== '----' ? '<span class="status-overtime">' . $overtime_display . '</span>' : $overtime_display;
@@ -1096,6 +1131,7 @@ if (isset($_POST['save_notes'])) {
                                     . '<td><span class="status-out">' . $out_display . '</span></td>'
                                     . '<td>' . $overtime_cell . '</td>'
                                     . '<td>----</td>'
+                                    . '<td>' . htmlspecialchars($tl_name) . '</td>'
                                     . '<td><button type="button" class="btn btn-info btn-sm" onclick="openSummaryModal(\'' . htmlspecialchars($pin) . '\')">Detail</button></td>'
                                     . '</tr>';
                             } else {
@@ -1128,18 +1164,22 @@ if (isset($_POST['save_notes'])) {
 
                                 }
 
+                                $job_title_nr = $nip_data[$pin]['job_title'] ?? '-';
+                                $job_level_nr = $nip_data[$pin]['job_level'] ?? '-';
+                                $jabatan_nr = trim($job_title_nr . ' ' . ($job_level_nr && $job_level_nr !== '-' ? '(' . $job_level_nr . ')' : ''));
                                 echo '<tr class="' . $row_class . '">'
                                     . '<td>' . ($no++) . '</td>'
                                     . '<td style="display: none;">' . htmlspecialchars($pin) . '</td>'
                                     . '<td>' . ($nip_data[$pin]['nip'] ?? '-') . '</td>'
                                     . '<td>' . ($nip_data[$pin]['nama'] ?? '-') . '</td>'
                                     . '<td>' . ($nip_data[$pin]['jk'] ?? '-') . '</td>'
-                                    . '<td>' . ($nip_data[$pin]['job_title'] ?? '-') . '</td>'
+                                    . '<td>' . htmlspecialchars($jabatan_nr) . '</td>'
                                     . '<td>' . $hari . ', ' . $tanggal . '</td>'
                                     . '<td>-</td>'
                                     . '<td>-</td>'
                                     . '<td>----</td>'
                                     . '<td>' . $keterangan_html . '</td>'
+                                    . '<td>' . ($nip_data[$pin]['tl_name'] ?? '-') . '</td>'
                                     . '<td><button type="button" class="btn btn-info btn-sm" onclick="openSummaryModal(\'' . htmlspecialchars($pin) . '\')">Detail</button></td>'
                                     . '</tr>';
                             }
