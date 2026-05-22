@@ -379,9 +379,12 @@ function exportToCsv($data_absen, $filename = null, $pinOrder = null) {
                         // Check absence code
                         $existing_code = $absence_notes[$pin][$tanggal_str] ?? '';
                         $code_labels = [
-                            'S' => 'S (Sakit)',
-                            'A' => 'A (Alpha)', 
-                            'I' => 'I (Ijin)'
+                            'S'    => 'S (Sakit)',
+                            'A'    => 'A (Alpha)',
+                            'I'    => 'I (Ijin)',
+                            'SSD'  => 'SSD (Sakit Surat Dokter)',
+                            'Cuti' => 'Cuti',
+                            'GL'   => 'GL (Ganti Libur)',
                         ];
                         $keterangan = !empty($existing_code) ? ($code_labels[$existing_code] ?? $existing_code) : '-';
                     }

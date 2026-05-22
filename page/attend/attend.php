@@ -2,7 +2,7 @@
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
-
+ 
 }
 // Proteksi: redirect ke login jika belum login
 if (!isset($_SESSION['user_id'])) {
@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_notes'])) {
     $create_sql = "CREATE TABLE IF NOT EXISTS absence_notes (
         pin VARCHAR(32) NOT NULL,
         date DATE NOT NULL,
-        code VARCHAR(4) DEFAULT NULL,
+        code VARCHAR(10) DEFAULT NULL,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY(pin,date)
     ) DEFAULT CHARSET=utf8mb4 ENGINE=InnoDB";
@@ -687,10 +687,15 @@ $kategori_options = array_values($kategori_map);
         .btn-recap:hover .emoji {
             transform: translateX(3px);
         }
+
+        /* Clickable row styles */
+        tbody tr:not(.resign) { cursor: pointer; }
+        tbody tr:not(.resign):hover td { background: #f0f7ff !important; }
     </style>
     <script>
         let currentFilter = 'all';
     let currentKategoriGaji = []; // Changed to array for multiple selection
+    const persistentSelected = new Set();
         document.addEventListener('DOMContentLoaded', function () {
             <?php if (isset($_SESSION['login_warning'])): ?>
                 Swal.fire({
@@ -704,7 +709,12 @@ $kategori_options = array_values($kategori_map);
         });
         function toggleAll(source) {
             const checkboxes = document.querySelectorAll('input[name="selected_users[]"]:not(.hidden):not(:disabled)');
-            checkboxes.forEach(checkbox => checkbox.checked = source.checked);
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = source.checked;
+                // keep persistentSelected in sync
+                if (source.checked) persistentSelected.add(checkbox.value);
+                else persistentSelected.delete(checkbox.value);
+            });
             updateSelectedCount();
             // update bulk button state when select-all used
             if (typeof updateBulkButtonState === 'function') updateBulkButtonState();
@@ -809,7 +819,10 @@ $kategori_options = array_values($kategori_map);
                     row.style.display = '';
                     row.classList.remove('hidden');
                     const checkbox = row.querySelector('input[type="checkbox"]');
-                    if (checkbox) checkbox.classList.remove('hidden');
+                    if (checkbox) {
+                        checkbox.classList.remove('hidden');
+                        if (typeof persistentSelected !== 'undefined') checkbox.checked = persistentSelected.has(checkbox.value);
+                    }
                     visibleCount++;
                 } else {
                     row.style.display = 'none';
@@ -817,7 +830,7 @@ $kategori_options = array_values($kategori_map);
                     const checkbox = row.querySelector('input[type="checkbox"]');
                     if (checkbox) {
                         checkbox.classList.add('hidden');
-                        checkbox.checked = false;
+                        // Do not uncheck here; persistentSelected keeps selection
                     }
                 }
             });
@@ -1480,25 +1493,31 @@ $kategori_options = array_values($kategori_map);
 
     // Bulk helpers
     function updateSelectedCount() {
-        const checked = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden):not(:disabled)');
-        document.getElementById('selectedCount').textContent = checked.length;
+        // Use persistentSelected to count regardless of visibility
+        const count = (typeof persistentSelected !== 'undefined') ? persistentSelected.size : document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden):not(:disabled)').length;
+        document.getElementById('selectedCount').textContent = count;
         updateBulkButtonState();
     }
 
     function updateBulkButtonState() {
         const btn = document.getElementById('addNoteBtn');
         if (!btn) return;
-        const has = document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden):not(:disabled)').length > 0;
+        const has = (typeof persistentSelected !== 'undefined') ? persistentSelected.size > 0 : document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden):not(:disabled)').length > 0;
         btn.disabled = !has;
     }
 
     function openBulkNoteModal() {
-        const checkedEls = Array.from(document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden):not(:disabled)'));
-        if (checkedEls.length === 0) {
-            alert('Pilih minimal satu user untuk menambah S/I/A');
-            return;
+        let pins = [];
+        if (typeof persistentSelected !== 'undefined' && persistentSelected.size > 0) {
+            pins = Array.from(persistentSelected);
+        } else {
+            const checkedEls = Array.from(document.querySelectorAll('input[name="selected_users[]"]:checked:not(.hidden):not(:disabled)'));
+            if (checkedEls.length === 0) {
+                alert('Pilih minimal satu user untuk menambah S/I/A');
+                return;
+            }
+            pins = checkedEls.map(c => c.value);
         }
-        const pins = checkedEls.map(c => c.value);
 
         // Create a simple modal (reusable)
         let modal = document.getElementById('bulkNoteModal');
@@ -1582,17 +1601,67 @@ $kategori_options = array_values($kategori_map);
         form.submit();
     }
 
-    // Ensure checkbox change events update counts
+    // Ensure checkbox change events update persistent selection and counts
     document.addEventListener('change', function (e) {
         if (e.target && e.target.matches('input[name="selected_users[]"]')) {
+            const val = e.target.value;
+            if (e.target.checked) {
+                persistentSelected.add(val);
+            } else {
+                persistentSelected.delete(val);
+            }
             updateSelectedCount();
         }
     });
 
-    // Initialize selected count on load
+    // Inject persistent selections into form before submit so hidden selections are posted
+    const absenForm = document.getElementById('absenForm');
+    if (absenForm) {
+        absenForm.addEventListener('submit', function (ev) {
+            // Remove any previously injected hidden inputs we added
+            Array.from(document.querySelectorAll('input.__persistent_hidden')).forEach(i => i.remove());
+            // For each persistent value, if there's no checked visible checkbox for it, inject hidden input
+            persistentSelected.forEach(val => {
+                const visibleChecked = document.querySelector('input[name="selected_users[]"][value="' + CSS.escape(val) + '"]:checked');
+                if (!visibleChecked) {
+                    const h = document.createElement('input');
+                    h.type = 'hidden';
+                    h.name = 'selected_users[]';
+                    h.value = val;
+                    h.className = '__persistent_hidden';
+                    absenForm.appendChild(h);
+                }
+            });
+        });
+    }
+
+    // Initialize selected count on load and attach row click handlers
     document.addEventListener('DOMContentLoaded', function () {
+        // Seed persistentSelected from any checkboxes already checked on load
+        if (typeof persistentSelected !== 'undefined') {
+            document.querySelectorAll('input[name="selected_users[]"]:checked').forEach(cb => persistentSelected.add(cb.value));
+        }
         updateSelectedCount();
+        attachRowClickHandlers();
     });
+
+    // Attach click handlers to rows to toggle checkbox
+    function attachRowClickHandlers() {
+        document.querySelectorAll('tbody tr').forEach(row => {
+            row.addEventListener('click', function(e) {
+                if (['INPUT','BUTTON','SELECT','A'].includes(e.target.tagName)) return;
+                const cb = row.querySelector('input[name="selected_users[]"]:not(:disabled)');
+                if (!cb || cb.classList.contains('hidden')) return;
+                cb.checked = !cb.checked;
+                // Update persistentSelected and counts directly instead of dispatching a change event
+                if (typeof persistentSelected !== 'undefined') {
+                    if (cb.checked) persistentSelected.add(cb.value);
+                    else persistentSelected.delete(cb.value);
+                }
+                updateSelectedCount();
+            });
+        });
+    }
 
     // Handle different submit buttons
     document.querySelector('button[name="detailBtn"]').addEventListener('click', function() {
