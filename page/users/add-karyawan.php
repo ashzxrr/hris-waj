@@ -672,7 +672,7 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                                                 <option value="57" <?= $sel_tl === '57' ? 'selected' : '' ?>>Muhammad Tamamur Ridlwan</option>
                                                 <option value="53" <?= $sel_tl === '53' ? 'selected' : '' ?>>Abdul Rouf Khoiri</option>
                                                 <option value="7" <?= $sel_tl === '7' ? 'selected' : '' ?>>Anita</option>
-                                                <option value="24" <?= $sel_tl === '24' ? 'selected' : '' ?>>Patur Albertino</option>
+                                                <option value="74" <?= $sel_tl === '74' ? 'selected' : '' ?>>Nur Alim Zainuri</option>
                                                 <option value="27" <?= $sel_tl === '27' ? 'selected' : '' ?>>Anas Ja'far</option>
                                                 <option value="48" <?= $sel_tl === '48' ? 'selected' : '' ?>>M.Jamaludin</option>
                                                 <option value="99" <?= $sel_tl === '99' ? 'selected' : '' ?>>Nila Widya Sari</option>

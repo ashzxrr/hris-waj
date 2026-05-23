@@ -582,7 +582,7 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                                     <option value="57" <?= (string)($u['tl_id'] ?? '') === '57' ? 'selected' : '' ?>>Muhammad Tamamur Ridlwan</option>
                                     <option value="53" <?= (string)($u['tl_id'] ?? '') === '53' ? 'selected' : '' ?>>Abdul Rouf Khoiri</option>
                                     <option value="7" <?= (string)($u['tl_id'] ?? '') === '7' ? 'selected' : '' ?>>Anita</option>
-                                    <option value="24" <?= (string)($u['tl_id'] ?? '') === '24' ? 'selected' : '' ?>>Patur Albertino</option>
+                                    <option value="74" <?= (string)($u['tl_id'] ?? '') === '74' ? 'selected' : '' ?>>Nur Alim Zainuri</option>
                                     <option value="27" <?= (string)($u['tl_id'] ?? '') === '27' ? 'selected' : '' ?>>Anas Ja'far</option>
                                     <option value="48" <?= (string)($u['tl_id'] ?? '') === '48' ? 'selected' : '' ?>>M. Jamaludin</option>
                                     <option value="99" <?= (string)($u['tl_id'] ?? '') === '99' ? 'selected' : '' ?>>Nila Widya Sari</option>
