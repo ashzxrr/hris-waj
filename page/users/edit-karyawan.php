@@ -600,6 +600,7 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                                     <option value="865" <?= (string)($u['tl_id'] ?? '') === '865' ? 'selected' : '' ?>>TL CCP 1</option>
                                     <option value="871" <?= (string)($u['tl_id'] ?? '') === '871' ? 'selected' : '' ?>>Sanitasi</option>
                                     <option value="872" <?= (string)($u['tl_id'] ?? '') === '872' ? 'selected' : '' ?>>Checker</option>
+                                    <option value="43" <?= (string)($u['tl_id'] ?? '') === '43' ? 'selected' : '' ?>>GD Kart</option>
                                 </optgroup>
                             </select>
                         </div>

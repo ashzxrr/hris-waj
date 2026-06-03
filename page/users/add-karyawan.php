@@ -691,6 +691,7 @@ $departemen_list = ['Produksi', 'Support', 'Operation'];
                                                 <option value="865" <?= $sel_tl === '865' ? 'selected' : '' ?>>TL CCP 1</option>
                                                 <option value="871" <?= $sel_tl === '871' ? 'selected' : '' ?>>Sanitasi</option>
                                                 <option value="872" <?= $sel_tl === '872' ? 'selected' : '' ?>>Checker</option>
+                                                <option value="43" <?= $sel_tl === '43' ? 'selected' : '' ?>>GD Kart</option>
                                             </optgroup>
                                         </select>
                                     </div>
